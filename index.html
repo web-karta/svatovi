@@ -513,7 +513,7 @@
     .progress-shell{ position:relative; margin-top:8px; padding:22px 3px 0; }
     .progress-track{ position:absolute; top:31px; left:7%; right:7%; height:4px; background:#ddd5ca; border-radius:999px; overflow:hidden; }
     .progress-fill{ height:100%; width:0%; background:#111; border-radius:999px; transition:width .7s ease; }
-    .progress-steps{ position:relative; display:grid; grid-template-columns:repeat(5,1fr); gap:5px; z-index:2; }
+    .progress-steps{ position:relative; display:grid; grid-template-columns:repeat(4,1fr); gap:5px; z-index:2; }
     .progress-step{ text-align:center; min-width:0; }
     .progress-marker{ width:22px; height:22px; margin:0 auto 10px; border-radius:50%; border:2px solid #bdb4a8; background:#fff; transition:.25s ease; }
     .progress-step.done .progress-marker{ background:#111; border-color:#111; }
@@ -637,11 +637,10 @@
         <div class="progress-shell" aria-label="Napredak svatova">
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
           <div class="progress-steps" id="progressSteps">
-            <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>Skup svatova</span></div>
-            <div class="progress-step" data-step="1"><div class="progress-marker"></div><span>Po mladu</span></div>
-            <div class="progress-step" data-step="2"><div class="progress-marker"></div><span>Na vjenčanje</span></div>
-            <div class="progress-step" data-step="3"><div class="progress-marker"></div><span>U salu</span></div>
-            <div class="progress-step" data-step="4"><div class="progress-marker"></div><span>Svadbeno slavlje</span></div>
+            <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>Skup svatova<br>13:00</span></div>
+            <div class="progress-step" data-step="1"><div class="progress-marker"></div><span>Po mladu<br>14:45</span></div>
+            <div class="progress-step" data-step="2"><div class="progress-marker"></div><span>Vjenčanje<br>16:00</span></div>
+            <div class="progress-step" data-step="3"><div class="progress-marker"></div><span>Sala<br>18:00</span></div>
           </div>
         </div>
 
@@ -950,17 +949,16 @@
     const WEDDING_DATE = '2029-09-29';
     const LIVE_ROW_ID = 1;
     const LIVE_POINTS = [
-      { name:'Ledinac — skup svatova', lat:43.34456, lng:17.48685, planned:'13:30', radius:1800 },
+      { name:'Ledinac — skup svatova', lat:43.34456, lng:17.48685, planned:'13:00', radius:1800 },
       { name:'Groblje Cista Provo — po mladu', lat:43.50700, lng:16.94183, planned:'14:45', radius:900 },
-      { name:'Crkva sv. Petra, apostola — Cista Provo', lat:43.50375, lng:16.94927, planned:'15:45', radius:650 },
-      { name:'Hotel Otok — Grude', lat:43.37856, lng:17.40781, planned:'18:20', radius:700 }
+      { name:'Crkva sv. Petra, apostola — Cista Provo', lat:43.50375, lng:16.94927, planned:'16:00', radius:650 },
+      { name:'Hotel Otok — Grude', lat:43.37856, lng:17.40781, planned:'18:00', radius:700 }
     ];
     const PHASE_LABELS = [
       'SKUP SVATOVA',
-      'POLAZAK PO MLADU',
-      'ODLAZAK NA VJENČANJE',
-      'ODLAZAK U SALU',
-      'SVADBENO SLAVLJE'
+      'PO MLADU',
+      'VJENČANJE',
+      'SALA'
     ];
 
     const livePhase = document.getElementById('livePhase');
@@ -995,10 +993,10 @@
     }
 
     function targetForPhase(phase){
-      if(phase <= 0) return LIVE_POINTS[0];
-      if(phase === 1) return LIVE_POINTS[1];
+      // Dok traje SKUP SVATOVA, sljedeće odredište je dolazak po mladu.
+      // Nakon toga cilj je vjenčanje, pa sala.
+      if(phase <= 1) return LIVE_POINTS[1];
       if(phase === 2) return LIVE_POINTS[2];
-      if(phase === 3) return LIVE_POINTS[3];
       return LIVE_POINTS[3];
     }
 
@@ -1015,8 +1013,8 @@
     }
 
     function calculateEta(row){
-      const phase=Math.max(0,Math.min(4,Number(row.phase)||0));
-      if(phase >= 4) return {text:'Stigli',delay:''};
+      const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
+      if(phase === 3 && distanceM(row.lat,row.lng,LIVE_POINTS[3].lat,LIVE_POINTS[3].lng) <= LIVE_POINTS[3].radius) return {text:'Stigli u salu',delay:''};
       const target=targetForPhase(phase);
       const meters=distanceM(row.lat,row.lng,target.lat,target.lng);
       if(meters <= target.radius) return {text:'Stigli na odredište',delay:''};
@@ -1034,11 +1032,11 @@
     }
 
     function progressPercent(row){
-      const phase=Math.max(0,Math.min(4,Number(row.phase)||0));
-      if(phase>=4) return 100;
-      const base=[0,20,40,65,100][phase];
-      const next=[20,40,65,100,100][phase];
-      if(phase===0) return 8;
+      const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
+      if(phase===3 && distanceM(row.lat,row.lng,LIVE_POINTS[3].lat,LIVE_POINTS[3].lng) <= LIVE_POINTS[3].radius) return 100;
+      const base=[0,25,50,75][phase];
+      const next=[25,50,75,100][phase];
+      if(phase===0) return 5;
       const target=targetForPhase(phase);
       const prev = phase===1 ? LIVE_POINTS[0] : phase===2 ? LIVE_POINTS[1] : LIVE_POINTS[2];
       const total=Math.max(1,distanceM(prev.lat,prev.lng,target.lat,target.lng));
@@ -1051,7 +1049,7 @@
       if(!row || typeof row.lat!=='number' || typeof row.lng!=='number') return;
       const updated=new Date(row.updated_at || Date.now());
       const ageSec=(Date.now()-updated.getTime())/1000;
-      const phase=Math.max(0,Math.min(4,Number(row.phase)||0));
+      const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
       livePhase.textContent=PHASE_LABELS[phase];
       livePlace.textContent=nearestPlace(row.lat,row.lng);
       const eta=calculateEta(row);
@@ -1075,7 +1073,7 @@
       const dChurch=distanceM(lat,lng,LIVE_POINTS[2].lat,LIVE_POINTS[2].lng);
       const dHotel=distanceM(lat,lng,LIVE_POINTS[3].lat,LIVE_POINTS[3].lng);
 
-      if(dHotel < LIVE_POINTS[3].radius){ currentPhase=4; }
+      if(dHotel < LIVE_POINTS[3].radius){ currentPhase=3; }
       else if(hasReachedChurch && dChurch > 1200){ currentPhase=Math.max(currentPhase,3); }
       else if(dChurch < LIVE_POINTS[2].radius){ hasReachedChurch=true; currentPhase=Math.max(currentPhase,2); }
       else if(hasReachedBride && dBride > 1300){ currentPhase=Math.max(currentPhase,2); }
