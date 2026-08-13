@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Svadbena pozivnica — Josip Alpeza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --paper:#fbfaf7;
+      --ink:#151515;
+      --muted:#6f6f6f;
+      --line:#ded7cc;
+      --soft:#f4efe7;
+      --shadow:0 18px 45px rgba(0,0,0,.10);
+      --radius:28px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    html{ scroll-behavior:smooth; }
+
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:'Libre Baskerville', Georgia, serif;
+      color:var(--ink);
+      background:linear-gradient(135deg,#ece6db,#fffdf8 50%,#e8dfd3);
+      overflow-x:hidden;
+    }
+
+    img{ max-width:100%; display:block; }
+
+    .top-nav{
+      position:fixed;
+      top:22px;
+      left:18px;
+      z-index:120;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      padding:0;
+      background:transparent;
+    }
+
+    .nav-btn{
+      min-width:62px;
+      height:62px;
+      border-radius:18px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      text-decoration:none;
+      color:#111;
+      box-shadow:0 8px 24px rgba(0,0,0,.08);
+      transition:.22s ease;
+      flex-shrink:0;
+    }
+
+    .nav-btn:hover{
+      transform:translateY(-2px);
+      box-shadow:0 14px 28px rgba(0,0,0,.14);
+    }
+
+    .nav-btn span{
+      position:absolute;
+      left:76px;
+      top:50%;
+      transform:translateY(-50%);
+      background:#fff;
+      border-radius:999px;
+      padding:8px 13px;
+      font-size:11px;
+      white-space:nowrap;
+      border:1px solid rgba(0,0,0,.08);
+      opacity:0;
+      transition:.2s ease;
+    }
+
+    .nav-btn svg{
+      width:28px;
+      height:28px;
+      stroke-width:1.8;
+    }
+
+    .nav-btn:hover span{
+      opacity:1;
+    
+    }
+
+    main{
+      width:min(1100px,100%);
+      margin:auto;
+      padding:14px 12px 80px;
+    }
+
+    .cover{
+      min-height:calc(100vh - 120px);
+      display:grid;
+      place-items:center;
+      padding-top:10px;
+    }
+
+    .invitation{
+      position:relative;
+      width:min(760px,100%);
+      min-height:860px;
+      background:rgba(255,255,255,.85);
+      border:6px double #1a1a1a;
+      box-shadow:var(--shadow);
+      padding:80px 26px 52px;
+      overflow:hidden;
+    }
+
+    .invitation::before{
+      content:"";
+      position:absolute;
+      inset:18px;
+      border:1px solid rgba(0,0,0,.12);
+      pointer-events:none;
+    }
+
+    .rings{
+      position:absolute;
+      left:50%;
+      top:48%;
+      transform:translate(-50%,-50%) rotate(-10deg);
+      opacity:.10;
+      width:340px;
+      height:250px;
+      z-index:-1;
+    }
+
+    .ring{
+      position:absolute;
+      width:210px;
+      height:210px;
+      border:16px solid #111;
+      border-radius:50%;
+    }
+
+    .ring.one{ left:0; top:0; }
+    .ring.two{ right:0; bottom:0; }
+
+    .names,
+    .date,
+    .closing{
+      text-align:center;
+    }
+
+    .names{
+      line-height:1.9;
+      margin-bottom:56px;
+    }
+
+    .hidden-name{ font-size:21px; letter-spacing:.12em; }
+    .amp{ font-size:28px; }
+    .main-name{ font-size:30px; font-weight:700; }
+
+    .date{
+      font-size:24px;
+      font-weight:700;
+      margin-bottom:74px;
+    }
+
+    .schedule{
+      display:grid;
+      grid-template-columns:58px 1fr 64px;
+      gap:12px;
+      align-items:center;
+      width:min(560px,100%);
+      margin:0 auto 92px;
+    }
+
+    .icon-stack{
+      display:grid;
+      gap:34px;
+      place-items:center;
+    }
+
+    .event-text{
+      text-align:center;
+      line-height:1.4;
+      font-size:18px;
+    }
+
+    .event-time{
+      font-size:18px;
+      font-weight:700;
+    }
+
+    .closing{
+      font-style:italic;
+      font-size:20px;
+      line-height:1.7;
+    }
+
+    .info{
+      margin-top:42px;
+      display:grid;
+      gap:28px;
+    }
+
+    .card{
+      background:rgba(255,255,255,.88);
+      border-radius:var(--radius);
+      overflow:hidden;
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+    }
+
+    .card-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+    }
+
+    .card img{
+      width:100%;
+      height:100%;
+      min-height:320px;
+      object-fit:cover;
+    }
+
+    .card-body{
+      padding:34px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:14px;
+    }
+
+    .label{
+      width:max-content;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:11px;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    h2{
+      margin:0;
+      font-size:30px;
+      line-height:1.2;
+    }
+
+    p{ line-height:1.7; }
+
+    .location{
+      background:var(--soft);
+      border-left:3px solid #111;
+      padding:15px;
+      line-height:1.6;
+      font-size:15px;
+    }
+
+    .map-link{
+      width:max-content;
+      text-decoration:none;
+      color:#111;
+      border:1px solid #111;
+      padding:12px 16px;
+      border-radius:999px;
+      transition:.2s ease;
+      background:#fff;
+    }
+
+    .map-link:hover{
+      background:#111;
+      color:#fff;
+    }
+
+    .albums-wrap{
+      padding:30px;
+    }
+
+    .upload-form{
+      display:grid;
+      gap:18px;
+      margin-top:24px;
+    }
+
+    .field{
+      display:grid;
+      gap:8px;
+    }
+
+    .field label{
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .field input,
+    .field select,
+    .field textarea{
+      width:100%;
+      border:1px solid rgba(0,0,0,.12);
+      border-radius:16px;
+      padding:15px;
+      font-family:'Libre Baskerville', serif;
+      background:#fff;
+      font-size:15px;
+    }
+
+    .upload-box{
+      border:2px dashed rgba(0,0,0,.16);
+      border-radius:22px;
+      padding:26px;
+      text-align:center;
+      background:#f9f5ee;
+    }
+
+    .upload-box input{
+      margin-top:14px;
+    }
+
+    .submit-btn{
+      border:none;
+      background:#111;
+      color:#fff;
+      border-radius:18px;
+      padding:16px;
+      font-family:'Libre Baskerville', serif;
+      font-size:15px;
+      cursor:pointer;
+    }
+
+    .guest-albums{
+      margin-top:36px;
+      display:grid;
+      gap:28px;
+    }
+
+    .album-section{
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:22px;
+      background:#fff;
+    }
+
+    .album-gallery{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:16px;
+    }
+
+    .album-item{
+      border-radius:18px;
+      overflow:hidden;
+      background:#f7f2ea;
+      border:1px solid rgba(0,0,0,.08);
+    }
+
+    .album-item img,
+    .album-item video{
+      width:100%;
+      height:190px;
+      object-fit:cover;
+      background:#ddd;
+    }
+
+    .album-meta{
+      padding:12px;
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .owner-panel{
+      margin-top:28px;
+      padding:20px;
+      border-radius:22px;
+      border:1px solid var(--line);
+      background:#fff;
+    }
+
+    .owner-row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .owner-row input,
+    .owner-row button,
+    .delete-btn{
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,.14);
+      padding:12px 14px;
+      font-family:'Libre Baskerville', serif;
+    }
+
+    .owner-row button,
+    .delete-btn{
+      background:#111;
+      color:#fff;
+      cursor:pointer;
+    }
+
+    .delete-btn{
+      width:calc(100% - 24px);
+      margin:0 12px 12px;
+      font-size:13px;
+    }
+
+    @media (max-width:860px){
+      .card-grid{
+        grid-template-columns:1fr;
+      }
+
+      .card.reverse .card-body{ order:2; }
+      .card.reverse img{ order:1; }
+    }
+
+    @media (max-width:640px){
+      body{
+        font-size:15px;
+      }
+
+      .top-nav{
+        top:auto;
+        bottom:12px;
+        left:50%;
+        transform:translateX(-50%);
+        flex-direction:row;
+        gap:8px;
+      }
+
+      .nav-btn{
+        min-width:56px;
+        height:56px;
+        border-radius:16px;
+      }
+
+      .nav-btn span{
+        font-size:10px;
+        top:64px;
+      }
+
+      main{
+        padding:10px 8px 90px;
+      }
+
+      .cover{
+        min-height:auto;
+      }
+
+      .invitation{
+        min-height:auto;
+        padding:68px 18px 42px;
+      }
+
+      .hidden-name{ font-size:17px; }
+      .main-name{ font-size:25px; }
+      .date{ font-size:20px; }
+
+      .schedule{
+        grid-template-columns:44px 1fr 54px;
+        gap:8px;
+        margin-bottom:58px;
+      }
+
+      .event-text,
+      .event-time{
+        font-size:14px;
+      }
+
+      .closing{
+        font-size:17px;
+      }
+
+      .card-body,
+      .albums-wrap{
+        padding:20px;
+      }
+
+      h2{
+        font-size:24px;
+      }
+
+      .album-gallery{
+        grid-template-columns:1fr;
+      }
+
+      .owner-row{
+        grid-template-columns:1fr;
+      }
+    }
+
+
+    /* ===== SVATOVI UŽIVO ===== */
+    .live-card{ padding:28px; }
+    .live-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:18px; }
+    .live-state{ margin:5px 0 0; font-size:24px; line-height:1.25; }
+    .live-pill{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:12px; white-space:nowrap; }
+    .live-dot{ width:10px; height:10px; border-radius:50%; background:#4979c7; box-shadow:0 0 0 4px rgba(73,121,199,.16); }
+    .live-dot.offline{ background:#999; box-shadow:none; }
+    .live-summary{ display:grid; grid-template-columns:1.1fr .9fr; gap:14px; margin:18px 0 24px; }
+    .live-box{ background:var(--soft); border-left:3px solid #111; padding:15px 16px; min-height:92px; }
+    .live-box small{ display:block; color:var(--muted); margin-bottom:6px; }
+    .live-box strong{ font-size:18px; line-height:1.35; }
+    .delay{ display:inline-block; margin-top:4px; font-size:13px; font-weight:700; }
+    .delay.late{ color:#9c2d25; }
+    .progress-shell{ position:relative; margin-top:8px; padding:22px 3px 0; }
+    .progress-track{ position:absolute; top:31px; left:7%; right:7%; height:4px; background:#ddd5ca; border-radius:999px; overflow:hidden; }
+    .progress-fill{ height:100%; width:0%; background:#111; border-radius:999px; transition:width .7s ease; }
+    .progress-steps{ position:relative; display:grid; grid-template-columns:repeat(5,1fr); gap:5px; z-index:2; }
+    .progress-step{ text-align:center; min-width:0; }
+    .progress-marker{ width:22px; height:22px; margin:0 auto 10px; border-radius:50%; border:2px solid #bdb4a8; background:#fff; transition:.25s ease; }
+    .progress-step.done .progress-marker{ background:#111; border-color:#111; }
+    .progress-step.active .progress-marker{ background:#4979c7; border-color:#4979c7; box-shadow:0 0 0 5px rgba(73,121,199,.16); }
+    .progress-step span{ display:block; font-size:10px; line-height:1.35; text-transform:uppercase; letter-spacing:.04em; }
+    .live-foot{ margin-top:18px; display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; }
+    .tracking-controls{ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:none; }
+    .tracking-controls button{ border:1px solid #111; background:#fff; color:#111; border-radius:14px; padding:12px 14px; font-family:'Libre Baskerville',serif; cursor:pointer; }
+    .tracking-controls button.is-on{ background:#111; color:#fff; }
+    #trackingStatus{ display:block; margin-top:9px; font-size:12px; color:var(--muted); }
+
+    @media (max-width:640px){
+      .live-card{ padding:20px; }
+      .live-head{ display:block; }
+      .live-pill{ margin-top:12px; }
+      .live-state{ font-size:20px; }
+      .live-summary{ grid-template-columns:1fr; }
+      .progress-step span{ font-size:8px; }
+      .progress-marker{ width:18px; height:18px; }
+      .progress-track{ top:29px; }
+      .live-foot{ display:block; }
+      .live-foot span{ display:block; margin-top:5px; }
+    }
+
+  </style>
+</head>
+<body>
+  <nav class="top-nav" aria-label="Navigacija pozivnice">
+    <a class="nav-btn" href="#crkva">
+      <svg viewBox="0 0 64 64" fill="currentColor"><path d="M30 8h4v8h8v4h-8v9h-4v-9h-8v-4h8z"/><path d="M10 35 32 18l22 17v23H39V42H25v16H10z"/></svg>
+      <span>Crkva</span>
+    </a>
+
+    <a class="nav-btn" href="#salon">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor"><path d="M18 28c0 10 5 17 14 17s14-7 14-17"/><path d="M20 28h24"/><path d="M23 20c3 3 3 5 0 8M32 18c3 4 3 7 0 10M41 20c3 3 3 5 0 8"/><path d="M32 45v11M24 56h16"/><path d="M12 23v33M9 23h6M9 31h6M9 39h6"/><path d="M52 23v33M49 23h6M49 31h6M49 39h6"/></svg>
+      <span>Salon</span>
+    </a>
+
+    <a class="nav-btn" href="#albumi">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor">
+        <rect x="12" y="16" width="40" height="32" rx="3"/>
+        <circle cx="25" cy="28" r="5"/>
+        <path d="M18 43 29 34l8 7 6-5 9 7"/>
+        <path d="M20 12h24M24 52h16"/>
+      </svg>
+      <span>Albumi</span>
+    </a>
+  </nav>
+
+  <main>
+    <section class="cover" id="pocetak">
+      <article class="invitation">
+        <div class="rings" aria-hidden="true">
+          <div class="ring one"></div>
+          <div class="ring two"></div>
+        </div>
+
+        <div class="names">
+          <div class="hidden-name">**** *******</div>
+          <div class="amp">&</div>
+          <div class="main-name">Josip Alpeza</div>
+        </div>
+
+        <div class="date">29. rujna 2029.</div>
+
+        <div class="schedule">
+          <div class="icon-stack">
+            <div class="event-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M30 8h4v8h8v4h-8v9h-4v-9h-8v-4h8z"/><path d="M10 35 32 18l22 17v23H39V42H25v16H10z"/></svg>
+            </div>
+            <div class="event-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M15 23h5v35h-5zM44 23h5v35h-5z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M12 25h11M12 33h11M12 41h11M41 25h11M41 33h11M41 41h11" stroke="currentColor" stroke-width="3"/><path d="M25 27c0 10 4 17 7 17s7-7 7-17" fill="none" stroke="currentColor" stroke-width="3"/><path d="M25 27h14M32 44v12M25 56h14" stroke="currentColor" stroke-width="3" fill="none"/></svg>
+            </div>
+          </div>
+
+          <div class="event-text">
+            <p><strong>Crkva sv. Petra, apostola, Cista Provo</strong></p>
+            <br>
+            <p><strong>Svadbeni salon Otok, Grude</strong><small>Ulica fra Gabre Grubišića 19,<br>Grude – Gomilice</small></p>
+          </div>
+
+          <div class="event-time">
+            <p>16.00</p>
+            <br><br>
+            <p>18.30</p>
+          </div>
+        </div>
+
+        <div class="closing">
+          Budite nam dragi gosti<br>
+          i budite s nama na početku<br>
+          našega zajedničkog života!
+        </div>
+      </article>
+    </section>
+
+
+
+    <section class="info" id="svatovi-uzivo">
+      <article class="card live-card">
+        <div class="live-head">
+          <div>
+            <div class="label">Svatovi uživo</div>
+            <h2 class="live-state" id="livePhase">Čekanje početka praćenja</h2>
+          </div>
+          <div class="live-pill"><span class="live-dot offline" id="liveDot"></span><span id="liveConnection">Lokacija nije aktivna</span></div>
+        </div>
+
+        <div class="live-summary">
+          <div class="live-box">
+            <small>Lokacija uživo</small>
+            <strong id="livePlace">—</strong>
+          </div>
+          <div class="live-box">
+            <small>Predviđeno vrijeme dolaska</small>
+            <strong id="liveEta">—</strong>
+            <span class="delay" id="liveDelay"></span>
+          </div>
+        </div>
+
+        <div class="progress-shell" aria-label="Napredak svatova">
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-steps" id="progressSteps">
+            <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>Skup svatova</span></div>
+            <div class="progress-step" data-step="1"><div class="progress-marker"></div><span>Po mladu</span></div>
+            <div class="progress-step" data-step="2"><div class="progress-marker"></div><span>Na vjenčanje</span></div>
+            <div class="progress-step" data-step="3"><div class="progress-marker"></div><span>U salu</span></div>
+            <div class="progress-step" data-step="4"><div class="progress-marker"></div><span>Svadbeno slavlje</span></div>
+          </div>
+        </div>
+
+        <div class="live-foot">
+          <span id="liveUpdated">Posljednje ažuriranje: —</span>
+          <span>Prikazuje se samo lokacija vozila/mladoženje koje je uključilo praćenje.</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="info" id="crkva">
+      <article class="card card-grid">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQO_oOMWyp96T9dutxHiUCR6-QH5YMN1dsZ7g&s" alt="Crkva u Cisti Provo">
+        <div class="card-body">
+          <div class="label">Vjenčanje</div>
+          <h2>Crkva sv. Petra, apostola, Cista Provo</h2>
+          <p>Obred vjenčanja počinje u 16.00 sati.</p>
+          <div class="location"><strong>Lokacija:</strong><br>Ulica Svetog Petra 1,<br> Cista Provo</div>
+          <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=crkva%20Cista%20Provo" target="_blank" rel="noopener">Otvori lokaciju</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="info" id="salon">
+      <article class="card card-grid reverse">
+        <div class="card-body">
+          <div class="label">Svečana večera</div>
+          <h2>Svadbeni salon Otok, Grude</h2>
+          <p>Svadbeno slavlje počinje u 18.30 sati.</p>
+          <div class="location"><strong>Lokacija:</strong><br>Ulica fra Gabre Grubišića 19,<br>Grude – Gomilice</div>
+          <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Svadbeni%20salon%20Otok%20Grude%20Ulica%20fra%20Gabre%20Grubi%C5%A1i%C4%87a%2019" target="_blank" rel="noopener">Otvori lokaciju</a>
+        </div>
+        <img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHujg_Rfcd71KmANp7kqUzt-YL4UYTD5JVUHwT9_33tY8NF2U11siN2zXPSQCY-b3NENAps6qC-LjJcQl25sdG66L2DiIW9aDFuECnuGtYC_6BYNccqun96RaPK6gzNFYh5-lts9w=s680-w680-h510-rw" alt="Svadbeni salon Otok u Grudama">
+      </article>
+    </section>
+
+    <section class="info" id="albumi">
+      <article class="card albums-wrap">
+        <div class="label">Album gostiju</div>
+        <h2>Dodavanje fotografija i videa</h2>
+        <p>Gosti mogu dodati slike i videozapise sa svadbe putem mobitela ili računala. Sadržaj se trajno sprema u vanjsko skladište i automatski sortira prema lokaciji događaja.</p>
+
+        <form class="upload-form" id="uploadForm">
+          <div class="field">
+            <label for="guest-name">Ime i prezime</label>
+            <input type="text" id="guest-name" placeholder="Unesite ime i prezime" required>
+          </div>
+
+          <div class="field">
+            <label for="guest-place">Mjesto</label>
+            <select id="guest-place" required>
+              <option>Crkva</option>
+              <option>Svadbeni salon</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="guest-message">Opis ili poruka</label>
+            <textarea id="guest-message" rows="4" placeholder="Dodajte kratki opis fotografije ili videa"></textarea>
+          </div>
+
+          <div class="upload-box">
+            <strong>Dodaj slike ili videozapise</strong><br>
+            <input type="file" id="guest-files" multiple accept="image/*,video/*" required>
+          </div>
+
+          <button type="submit" class="submit-btn">Pošalji u album gostiju</button>
+        </form>
+
+        <div class="owner-panel">
+          <h3>Vlasnik albuma</h3>
+          <p>Unesi vlasnički PIN za prikaz gumba za brisanje spremljenih fotografija i videa.</p>
+          <div class="owner-row">
+            <input type="password" id="ownerPin" placeholder="Vlasnički PIN">
+            <button type="button" id="ownerLogin">Uključi brisanje</button>
+          </div>
+          <small id="ownerStatus"></small>
+
+          <div class="tracking-controls" id="trackingControls">
+            <button type="button" id="trackingToggle">Pokreni praćenje moje lokacije</button>
+            <small id="trackingStatus">Praćenje je isključeno.</small>
+          </div>
+        </div>
+
+        <div class="guest-albums" id="album-gostiju">
+          <div class="album-section">
+            <h3>Crkva</h3>
+            <div class="album-gallery" id="churchGallery"></div>
+          </div>
+
+          <div class="album-section">
+            <h3>Svadbeni salon</h3>
+            <div class="album-gallery" id="salonGallery"></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /*
+      ZA TRAJNO SPREMANJE NA GITHUB PAGES:
+      1) Otvori Supabase projekt.
+      2) Napravi Storage bucket: wedding-album
+      3) Napravi tablicu: album_items
+
+      SQL za tablicu:
+      create table album_items (
+        id uuid primary key default gen_random_uuid(),
+        created_at timestamp with time zone default now(),
+        guest_name text not null,
+        place text not null check (place in ('Crkva','Svadbeni salon')),
+        message text,
+        file_path text not null,
+        file_url text not null,
+        file_type text not null
+      );
+
+      4) Ovdje upiši svoj Supabase URL i anon public key.
+    */
+
+    const SUPABASE_URL = "https://tjorkcpxxttgalxrmdud.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_VqHZtcFyhQbpEY5k55eOpQ_Pww0aOL_";
+    const BUCKET_NAME = "vjen";
+
+    /* Tvoj vlasnički PIN za prikaz gumba Brisanje. Ovo nije jaka zaštita.
+       Prava zaštita se postavlja u Supabase pravilima. */
+    const OWNER_PIN = "29092029";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const uploadForm = document.getElementById('uploadForm');
+    const guestFiles = document.getElementById('guest-files');
+    const guestName = document.getElementById('guest-name');
+    const guestPlace = document.getElementById('guest-place');
+    const guestMessage = document.getElementById('guest-message');
+    const churchGallery = document.getElementById('churchGallery');
+    const salonGallery = document.getElementById('salonGallery');
+    const ownerLogin = document.getElementById('ownerLogin');
+    const ownerPin = document.getElementById('ownerPin');
+    const ownerStatus = document.getElementById('ownerStatus');
+
+    let isOwner = false;
+
+    function escapeHtml(value){
+      return String(value || '').replace(/[&<>'"]/g, char => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'
+      }[char]));
+    }
+
+    function galleryForPlace(place){
+      return place === 'Crkva' ? churchGallery : salonGallery;
+    }
+
+    function renderItem(item){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'album-item';
+      wrapper.dataset.id = item.id;
+      wrapper.dataset.path = item.file_path;
+
+      let media;
+      if(item.file_type.startsWith('video/')){
+        media = document.createElement('video');
+        media.src = item.file_url;
+        media.controls = true;
+        media.playsInline = true;
+      } else {
+        media = document.createElement('img');
+        media.src = item.file_url;
+        media.alt = item.message || item.place;
+        media.loading = 'lazy';
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'album-meta';
+      meta.innerHTML = `
+        <strong>${escapeHtml(item.guest_name)}</strong><br>
+        ${escapeHtml(item.place)}<br>
+        ${escapeHtml(item.message || '')}
+        <br><small>${new Date(item.created_at).toLocaleString('hr-HR')}</small>
+      `;
+
+      const del = document.createElement('button');
+      del.className = 'delete-btn';
+      del.textContent = 'Obriši';
+      del.hidden = !isOwner;
+      del.addEventListener('click', () => deleteItem(item.id, item.file_path, wrapper));
+
+      wrapper.appendChild(media);
+      wrapper.appendChild(meta);
+      wrapper.appendChild(del);
+      galleryForPlace(item.place).prepend(wrapper);
+    }
+
+    async function loadAlbum(){
+      churchGallery.innerHTML = '';
+      salonGallery.innerHTML = '';
+
+      const { data, error } = await supabaseClient
+        .from('album_items')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if(error){
+        console.error(error);
+        return;
+      }
+
+      data.forEach(renderItem);
+    }
+
+    uploadForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+
+      const files = Array.from(guestFiles.files);
+      if(!files.length) return;
+
+      const name = guestName.value.trim();
+      const place = guestPlace.value;
+      const message = guestMessage.value.trim();
+
+      for(const file of files){
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${place}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+
+        const { error: uploadError } = await supabaseClient.storage
+          .from(BUCKET_NAME)
+          .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+        if(uploadError){
+          alert('Greška pri spremanju datoteke.');
+          console.error(uploadError);
+          continue;
+        }
+
+        const { data: publicData } = supabaseClient.storage
+          .from(BUCKET_NAME)
+          .getPublicUrl(filePath);
+
+        const { data: inserted, error: insertError } = await supabaseClient
+          .from('album_items')
+          .insert({
+            guest_name: name,
+            place,
+            message,
+            file_path: filePath,
+            file_url: publicData.publicUrl,
+            file_type: file.type
+          })
+          .select()
+          .single();
+
+        if(insertError){
+          alert('Datoteka je spremljena, ali zapis nije dodan u album.');
+          console.error(insertError);
+          continue;
+        }
+
+        renderItem(inserted);
+      }
+
+      uploadForm.reset();
+      document.getElementById('album-gostiju').scrollIntoView({ behavior:'smooth' });
+    });
+
+    ownerLogin.addEventListener('click', function(){
+      isOwner = ownerPin.value === OWNER_PIN;
+      ownerStatus.textContent = isOwner ? 'Vlasnički način uključen.' : 'Pogrešan PIN.';
+      document.querySelectorAll('.delete-btn').forEach(btn => btn.hidden = !isOwner);
+    });
+
+    async function deleteItem(id, filePath, element){
+      if(!isOwner) return;
+      if(!confirm('Obrisati ovu stavku iz albuma?')) return;
+
+      const { error: storageError } = await supabaseClient.storage
+        .from(BUCKET_NAME)
+        .remove([filePath]);
+
+      if(storageError){
+        alert('Greška pri brisanju datoteke.');
+        console.error(storageError);
+        return;
+      }
+
+      const { error: dbError } = await supabaseClient
+        .from('album_items')
+        .delete()
+        .eq('id', id);
+
+      if(dbError){
+        alert('Datoteka je obrisana, ali zapis nije uklonjen iz tablice.');
+        console.error(dbError);
+        return;
+      }
+
+      element.remove();
+    }
+
+
+
+    /* ===== SVATOVI UŽIVO =====
+       Koordinate su centralne točke/odredišta i lako ih možeš doraditi.
+       Planirana vremena služe samo za izračun "kasni X min.".
+    */
+    const WEDDING_DATE = '2029-09-29';
+    const LIVE_ROW_ID = 1;
+    const LIVE_POINTS = [
+      { name:'Ledinac — skup svatova', lat:43.34456, lng:17.48685, planned:'13:30', radius:1800 },
+      { name:'Groblje Cista Provo — po mladu', lat:43.50700, lng:16.94183, planned:'14:45', radius:900 },
+      { name:'Crkva sv. Petra, apostola — Cista Provo', lat:43.50375, lng:16.94927, planned:'15:45', radius:650 },
+      { name:'Hotel Otok — Grude', lat:43.37856, lng:17.40781, planned:'18:20', radius:700 }
+    ];
+    const PHASE_LABELS = [
+      'SKUP SVATOVA',
+      'POLAZAK PO MLADU',
+      'ODLAZAK NA VJENČANJE',
+      'ODLAZAK U SALU',
+      'SVADBENO SLAVLJE'
+    ];
+
+    const livePhase = document.getElementById('livePhase');
+    const livePlace = document.getElementById('livePlace');
+    const liveEta = document.getElementById('liveEta');
+    const liveDelay = document.getElementById('liveDelay');
+    const liveUpdated = document.getElementById('liveUpdated');
+    const liveDot = document.getElementById('liveDot');
+    const liveConnection = document.getElementById('liveConnection');
+    const progressFill = document.getElementById('progressFill');
+    const progressSteps = Array.from(document.querySelectorAll('.progress-step'));
+    const trackingControls = document.getElementById('trackingControls');
+    const trackingToggle = document.getElementById('trackingToggle');
+    const trackingStatus = document.getElementById('trackingStatus');
+
+    let watchId = null;
+    let currentPhase = Number(localStorage.getItem('weddingLivePhase') || 0);
+    let hasReachedBride = localStorage.getItem('weddingReachedBride') === '1';
+    let hasReachedChurch = localStorage.getItem('weddingReachedChurch') === '1';
+    let lastOwnFix = null;
+
+    function toRad(v){ return v * Math.PI / 180; }
+    function distanceM(aLat,aLng,bLat,bLng){
+      const R=6371000;
+      const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
+      const x=Math.sin(dLat/2)**2 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*Math.sin(dLng/2)**2;
+      return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+    }
+
+    function plannedDate(time){
+      return new Date(`${WEDDING_DATE}T${time}:00`);
+    }
+
+    function targetForPhase(phase){
+      if(phase <= 0) return LIVE_POINTS[0];
+      if(phase === 1) return LIVE_POINTS[1];
+      if(phase === 2) return LIVE_POINTS[2];
+      if(phase === 3) return LIVE_POINTS[3];
+      return LIVE_POINTS[3];
+    }
+
+    function formatClock(d){
+      return d.toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
+    }
+
+    function nearestPlace(lat,lng){
+      const ranked=LIVE_POINTS.map(p=>({p,d:distanceM(lat,lng,p.lat,p.lng)})).sort((a,b)=>a.d-b.d);
+      const best=ranked[0];
+      if(best.d < 1200) return best.p.name;
+      if(best.d < 6000) return `u blizini: ${best.p.name}`;
+      return 'svatovi su na putu';
+    }
+
+    function calculateEta(row){
+      const phase=Math.max(0,Math.min(4,Number(row.phase)||0));
+      if(phase >= 4) return {text:'Stigli',delay:''};
+      const target=targetForPhase(phase);
+      const meters=distanceM(row.lat,row.lng,target.lat,target.lng);
+      if(meters <= target.radius) return {text:'Stigli na odredište',delay:''};
+      let speedKmh = Number(row.speed) > 2 ? Number(row.speed)*3.6 : (phase===2 ? 35 : 52);
+      speedKmh=Math.max(18,Math.min(speedKmh,85));
+      const roadFactor = phase===2 ? 1.08 : 1.18;
+      const minutes=(meters/1000*roadFactor)/speedKmh*60;
+      const eta=new Date(Date.now()+minutes*60000);
+      const planned=plannedDate(target.planned);
+      const lateMin=Math.round((eta-planned)/60000);
+      return {
+        text:formatClock(eta),
+        delay: lateMin>=2 ? `(kasni ${lateMin} min.)` : ''
+      };
+    }
+
+    function progressPercent(row){
+      const phase=Math.max(0,Math.min(4,Number(row.phase)||0));
+      if(phase>=4) return 100;
+      const base=[0,20,40,65,100][phase];
+      const next=[20,40,65,100,100][phase];
+      if(phase===0) return 8;
+      const target=targetForPhase(phase);
+      const prev = phase===1 ? LIVE_POINTS[0] : phase===2 ? LIVE_POINTS[1] : LIVE_POINTS[2];
+      const total=Math.max(1,distanceM(prev.lat,prev.lng,target.lat,target.lng));
+      const remain=distanceM(row.lat,row.lng,target.lat,target.lng);
+      const frac=Math.max(0,Math.min(1,1-remain/total));
+      return base+(next-base)*frac;
+    }
+
+    function renderLive(row){
+      if(!row || typeof row.lat!=='number' || typeof row.lng!=='number') return;
+      const updated=new Date(row.updated_at || Date.now());
+      const ageSec=(Date.now()-updated.getTime())/1000;
+      const phase=Math.max(0,Math.min(4,Number(row.phase)||0));
+      livePhase.textContent=PHASE_LABELS[phase];
+      livePlace.textContent=nearestPlace(row.lat,row.lng);
+      const eta=calculateEta(row);
+      liveEta.textContent=eta.text;
+      liveDelay.textContent=eta.delay;
+      liveDelay.classList.toggle('late',Boolean(eta.delay));
+      liveUpdated.textContent='Posljednje ažuriranje: '+updated.toLocaleString('hr-HR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const online=ageSec<90;
+      liveDot.classList.toggle('offline',!online);
+      liveConnection.textContent=online?'Lokacija uživo':'Posljednja poznata lokacija';
+      progressFill.style.width=progressPercent(row).toFixed(1)+'%';
+      progressSteps.forEach((el,i)=>{
+        el.classList.toggle('done',i<phase);
+        el.classList.toggle('active',i===phase);
+      });
+    }
+
+    function updatePhaseFromFix(lat,lng){
+      const dStart=distanceM(lat,lng,LIVE_POINTS[0].lat,LIVE_POINTS[0].lng);
+      const dBride=distanceM(lat,lng,LIVE_POINTS[1].lat,LIVE_POINTS[1].lng);
+      const dChurch=distanceM(lat,lng,LIVE_POINTS[2].lat,LIVE_POINTS[2].lng);
+      const dHotel=distanceM(lat,lng,LIVE_POINTS[3].lat,LIVE_POINTS[3].lng);
+
+      if(dHotel < LIVE_POINTS[3].radius){ currentPhase=4; }
+      else if(hasReachedChurch && dChurch > 1200){ currentPhase=Math.max(currentPhase,3); }
+      else if(dChurch < LIVE_POINTS[2].radius){ hasReachedChurch=true; currentPhase=Math.max(currentPhase,2); }
+      else if(hasReachedBride && dBride > 1300){ currentPhase=Math.max(currentPhase,2); }
+      else if(dBride < LIVE_POINTS[1].radius){ hasReachedBride=true; currentPhase=Math.max(currentPhase,1); }
+      else if(dStart > 2300){ currentPhase=Math.max(currentPhase,1); }
+      else currentPhase=Math.max(currentPhase,0);
+
+      localStorage.setItem('weddingLivePhase',String(currentPhase));
+      localStorage.setItem('weddingReachedBride',hasReachedBride?'1':'0');
+      localStorage.setItem('weddingReachedChurch',hasReachedChurch?'1':'0');
+      return currentPhase;
+    }
+
+    async function publishPosition(position){
+      const c=position.coords;
+      const phase=updatePhaseFromFix(c.latitude,c.longitude);
+      const row={
+        id:LIVE_ROW_ID,
+        lat:c.latitude,
+        lng:c.longitude,
+        accuracy:c.accuracy || null,
+        speed:Number.isFinite(c.speed)?c.speed:null,
+        heading:Number.isFinite(c.heading)?c.heading:null,
+        phase,
+        updated_at:new Date().toISOString()
+      };
+      lastOwnFix=row;
+      renderLive(row);
+      const {error}=await supabaseClient.from('wedding_live_location').upsert(row,{onConflict:'id'});
+      if(error){
+        console.error('Live location:',error);
+        trackingStatus.textContent='GPS radi, ali Supabase zapis nije uspio. Provjeri tablicu/politike.';
+      } else {
+        trackingStatus.textContent='Lokacija se šalje uživo. Točnost: ±'+Math.round(c.accuracy||0)+' m.';
+      }
+    }
+
+    function startTracking(){
+      if(!navigator.geolocation){
+        trackingStatus.textContent='Ovaj preglednik ne podržava geolokaciju.';
+        return;
+      }
+      if(watchId!==null) return;
+      trackingStatus.textContent='Tražim dopuštenje za lokaciju…';
+      watchId=navigator.geolocation.watchPosition(
+        publishPosition,
+        err=>{ trackingStatus.textContent='Lokacija nije dostupna: '+err.message; },
+        {enableHighAccuracy:true,maximumAge:3000,timeout:15000}
+      );
+      trackingToggle.textContent='Zaustavi praćenje moje lokacije';
+      trackingToggle.classList.add('is-on');
+    }
+
+    function stopTracking(){
+      if(watchId!==null) navigator.geolocation.clearWatch(watchId);
+      watchId=null;
+      trackingToggle.textContent='Pokreni praćenje moje lokacije';
+      trackingToggle.classList.remove('is-on');
+      trackingStatus.textContent='Praćenje je isključeno.';
+    }
+
+    trackingToggle.addEventListener('click',()=>{
+      if(!isOwner) return;
+      watchId===null ? startTracking() : stopTracking();
+    });
+
+    async function fetchLiveLocation(){
+      if(lastOwnFix && watchId!==null){ renderLive(lastOwnFix); return; }
+      const {data,error}=await supabaseClient
+        .from('wedding_live_location')
+        .select('*')
+        .eq('id',LIVE_ROW_ID)
+        .maybeSingle();
+      if(error){
+        console.warn('Live location read:',error);
+        liveConnection.textContent='Praćenje još nije postavljeno';
+        return;
+      }
+      if(data) renderLive(data);
+    }
+
+    // Kad se potvrdi vlasnički PIN, samo vlasnik dobiva kontrolu GPS praćenja.
+    ownerLogin.addEventListener('click',function(){
+      trackingControls.style.display=isOwner?'block':'none';
+      if(!isOwner) stopTracking();
+    });
+
+    fetchLiveLocation();
+    setInterval(fetchLiveLocation,10000);
+
+
+    loadAlbum();
+  </script>
+</body>
+</html>
