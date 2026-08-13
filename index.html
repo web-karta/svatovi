@@ -975,10 +975,28 @@
     const trackingStatus = document.getElementById('trackingStatus');
 
     let watchId = null;
+    const TRACKING_KEY = 'weddingTrackingEnabled';
+    let trackingWanted = localStorage.getItem(TRACKING_KEY) === '1';
     let currentPhase = Number(localStorage.getItem('weddingLivePhase') || 0);
     let hasReachedBride = localStorage.getItem('weddingReachedBride') === '1';
     let hasReachedChurch = localStorage.getItem('weddingReachedChurch') === '1';
     let lastOwnFix = null;
+    let wakeLock = null;
+
+    function setTrackingWanted(value){
+      trackingWanted = Boolean(value);
+      localStorage.setItem(TRACKING_KEY, trackingWanted ? '1' : '0');
+    }
+
+    async function requestWakeLock(){
+      if(!trackingWanted || document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return;
+      try{
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release',()=>{ wakeLock=null; });
+      }catch(e){
+        // Nije presudno: praćenje nastavlja koliko preglednik dopušta.
+      }
+    }
 
     function toRad(v){ return v * Math.PI / 180; }
     function distanceM(aLat,aLng,bLat,bLng){
@@ -1111,33 +1129,67 @@
       }
     }
 
-    function startTracking(){
+    function syncTrackingUi(){
+      const on = trackingWanted || watchId!==null;
+      trackingToggle.textContent = on ? 'Zaustavi praćenje moje lokacije' : 'Pokreni praćenje moje lokacije';
+      trackingToggle.classList.toggle('is-on', on);
+    }
+
+    function startTracking({remember=true}={}){
       if(!navigator.geolocation){
         trackingStatus.textContent='Ovaj preglednik ne podržava geolokaciju.';
         return;
       }
+      if(remember) setTrackingWanted(true);
+      syncTrackingUi();
       if(watchId!==null) return;
-      trackingStatus.textContent='Tražim dopuštenje za lokaciju…';
+      trackingStatus.textContent='Praćenje je uključeno. Dohvaćam GPS lokaciju…';
       watchId=navigator.geolocation.watchPosition(
         publishPosition,
-        err=>{ trackingStatus.textContent='Lokacija nije dostupna: '+err.message; },
-        {enableHighAccuracy:true,maximumAge:3000,timeout:15000}
+        err=>{
+          if(err.code===1){
+            trackingStatus.textContent='Pristup lokaciji nije dopušten. Omogući lokaciju za ovu stranicu u postavkama preglednika.';
+          }else{
+            trackingStatus.textContent='GPS je uključen, ali trenutačno nema lokacije: '+err.message;
+          }
+          // Namjera praćenja ostaje uključena pa će se automatski pokušati ponovno kad se vratiš na stranicu.
+        },
+        {enableHighAccuracy:true,maximumAge:5000,timeout:20000}
       );
-      trackingToggle.textContent='Zaustavi praćenje moje lokacije';
-      trackingToggle.classList.add('is-on');
+      requestWakeLock();
     }
 
-    function stopTracking(){
+    function stopTracking({remember=true}={}){
       if(watchId!==null) navigator.geolocation.clearWatch(watchId);
       watchId=null;
-      trackingToggle.textContent='Pokreni praćenje moje lokacije';
-      trackingToggle.classList.remove('is-on');
+      if(remember) setTrackingWanted(false);
+      if(wakeLock){ try{ wakeLock.release(); }catch(e){} wakeLock=null; }
+      syncTrackingUi();
       trackingStatus.textContent='Praćenje je isključeno.';
+    }
+
+    function resumeTrackingIfWanted(){
+      if(!trackingWanted) return;
+      startTracking({remember:false});
     }
 
     trackingToggle.addEventListener('click',()=>{
       if(!isOwner) return;
-      watchId===null ? startTracking() : stopTracking();
+      if(trackingWanted || watchId!==null) stopTracking();
+      else startTracking();
+    });
+
+    // Ako si jednom uključio praćenje, ista instalacija/preglednik pamti tu odluku.
+    // Nakon povratka na karticu, ponovnog otvaranja stranice ili vraćanja iz druge aplikacije
+    // GPS se automatski ponovno pokreće bez novog pritiska na gumb.
+    window.addEventListener('pageshow', resumeTrackingIfWanted);
+    window.addEventListener('focus', resumeTrackingIfWanted);
+    window.addEventListener('online', resumeTrackingIfWanted);
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible'){
+        resumeTrackingIfWanted();
+        requestWakeLock();
+      }
     });
 
     async function fetchLiveLocation(){
@@ -1158,9 +1210,13 @@
     // Kad se potvrdi vlasnički PIN, samo vlasnik dobiva kontrolu GPS praćenja.
     ownerLogin.addEventListener('click',function(){
       trackingControls.style.display=isOwner?'block':'none';
-      if(!isOwner) stopTracking();
+      syncTrackingUi();
+      if(isOwner && trackingWanted) resumeTrackingIfWanted();
+      // Pogrešan PIN više ne gasi već aktivno praćenje na ovom uređaju.
     });
 
+    syncTrackingUi();
+    resumeTrackingIfWanted();
     fetchLiveLocation();
     setInterval(fetchLiveLocation,10000);
 
