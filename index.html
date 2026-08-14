@@ -584,7 +584,10 @@
     .couple-map-panel{width:min(1100px,100%);height:min(82vh,760px);background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column;}
     .couple-map-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:#fff;}
     .couple-map-head strong{font-size:18px;}
-    .couple-map-head small{display:block;color:var(--muted);margin-top:4px;}
+    .map-live-status{display:inline-flex;align-items:center;gap:8px;margin-top:6px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.035em;text-transform:uppercase;}
+    .map-live-dot{width:10px;height:10px;border-radius:50%;background:#4b7fcf;box-shadow:0 0 0 0 rgba(75,127,207,.38);animation:mapPulse 1.35s infinite;}
+    .map-live-dot.off{background:#9b9b9b;box-shadow:none;animation:none;}
+    @keyframes mapPulse{0%{box-shadow:0 0 0 0 rgba(75,127,207,.42)}70%{box-shadow:0 0 0 8px rgba(75,127,207,0)}100%{box-shadow:0 0 0 0 rgba(75,127,207,0)}}
     .couple-map-close{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:26px;line-height:1;cursor:pointer;}
     #coupleMap{flex:1;min-height:420px;background:#eee;}
     .couple-map-foot{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);background:#fff;}
@@ -592,9 +595,11 @@
     .legend-dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
     .legend-dot.groom{background:#2f6fbe}.legend-dot.bride{background:#cf4f83}
     .couple-map-icon{background:transparent!important;border:0!important;}
-    .person-pin{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);}
+    .person-pin{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 3px 12px rgba(0,0,0,.34);position:relative;}
+    .person-pin::after{content:"";position:absolute;bottom:-6px;left:50%;width:12px;height:12px;transform:translateX(-50%) rotate(45deg);background:inherit;border-right:3px solid #fff;border-bottom:3px solid #fff;border-radius:2px;}
+    .person-pin svg{width:27px;height:27px;position:relative;z-index:2;}
     .person-pin.groom{background:#2f6fbe}.person-pin.bride{background:#cf4f83}
-    @media(max-width:640px){.couple-map-modal{padding:0}.couple-map-panel{width:100%;height:100vh;border-radius:0}.couple-map-head strong{font-size:16px}#coupleMap{min-height:0}}
+    @media(max-width:640px){.couple-map-modal{padding:5px}.couple-map-panel{width:calc(100vw - 10px);height:calc(100dvh - 10px);max-height:none;border-radius:18px}.couple-map-head{padding:12px 13px}.couple-map-head strong{font-size:15px}#coupleMap{min-height:0}.couple-map-foot{padding:9px 11px;gap:10px;font-size:11px}}
 
   </style>
 </head>
@@ -825,14 +830,16 @@
   <div class="couple-map-modal" id="coupleMapModal" aria-hidden="true">
     <div class="couple-map-panel" role="dialog" aria-modal="true" aria-label="Lokacija mladoženje i mlade">
       <div class="couple-map-head">
-        <div><strong>Lokacija mladoženje i mlade</strong><small>Carto Voyager · položaji se osvježavaju uživo</small></div>
+        <div>
+          <strong>Lokacija mladoženje i mlade</strong>
+          <div class="map-live-status"><span class="map-live-dot off" id="mapLiveDot"></span><span id="coupleMapStatus">NIJE UKLJUČENA LOKACIJA</span></div>
+        </div>
         <button class="couple-map-close" id="coupleMapClose" type="button" aria-label="Zatvori kartu">×</button>
       </div>
       <div id="coupleMap"></div>
       <div class="couple-map-foot">
-        <span class="couple-map-legend"><span class="legend-dot groom"></span> Mladoženja — referentni</span>
+        <span class="couple-map-legend"><span class="legend-dot groom"></span> Mladoženja</span>
         <span class="couple-map-legend"><span class="legend-dot bride"></span> Mlada</span>
-        <span id="coupleMapStatus">Čekanje lokacija…</span>
       </div>
     </div>
   </div>
@@ -1014,7 +1021,7 @@
       else localStorage.removeItem('weddingActiveRole');
       ownerStatus.textContent = isOwner ? ('Prijavljen/a: '+(activeRole==='groom'?'Mladoženja':'Mlada')+'.') : 'Pogrešna šifra.';
       const badge=document.getElementById('roleBadge');
-      if(badge) badge.textContent=isOwner ? (activeRole==='groom'?'🤵 Mladoženja — referentni uređaj':'👰 Mlada') : '';
+      if(badge) badge.textContent=isOwner ? (activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada') : '';
       document.querySelectorAll('.delete-btn').forEach(btn => btn.hidden = !isOwner);
     });
 
@@ -1192,11 +1199,8 @@
     }
 
     function updateMapButton(){
-      const g=rows.groom,b=rows.bride;
-      if(g&&b) liveMapBtn.textContent='⌖ Otvori lokaciju mladoženje i mlade';
-      else if(g||b) liveMapBtn.textContent='⌖ Otvori dostupnu lokaciju';
-      else liveMapBtn.textContent='⌖ Lokacija još nije dostupna';
-      liveMapBtn.disabled=!(g||b);
+      liveMapBtn.textContent='⌖ Otvori lokaciju';
+      liveMapBtn.disabled=false;
       updateCoupleMap();
     }
 
@@ -1205,20 +1209,22 @@
     const coupleMapModal=document.getElementById('coupleMapModal');
     const coupleMapClose=document.getElementById('coupleMapClose');
     const coupleMapStatus=document.getElementById('coupleMapStatus');
+    const mapLiveDot=document.getElementById('mapLiveDot');
     let coupleMap=null, groomMarker=null, brideMarker=null, groomTrailLine=null, brideTrailLine=null;
     const groomTrail=[], brideTrail=[];
     let lastTrailKey={groom:null,bride:null};
 
     function personDivIcon(role){
-      const emoji=role==='groom'?'🤵':'👰';
-      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'">'+emoji+'</div>',iconSize:[42,42],iconAnchor:[21,21],popupAnchor:[0,-23]});
+      const groomSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="9" r="5" fill="#fff"/><path d="M7 28c.7-7 3.8-11 9-11s8.3 4 9 11H7z" fill="#fff"/><path d="M12.5 18.5 16 22l3.5-3.5L18 28h-4l-1.5-9.5z" fill="#153d72"/></svg>`;
+      const brideSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="9" r="5" fill="#fff"/><path d="M10 13c1.7 2 3.7 3 6 3s4.3-1 6-3c1 5.2 3.3 10.2 5 15H5c1.7-4.8 4-9.8 5-15z" fill="#fff"/><path d="M11 7c1-4 9-4 10 0-2-1.3-8-1.3-10 0z" fill="#fff"/></svg>`;
+      const svg=role==='groom'?groomSvg:brideSvg;
+      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'">'+svg+'</div>',iconSize:[46,52],iconAnchor:[23,48],popupAnchor:[0,-46]});
     }
     function initCoupleMap(){
       if(coupleMap) return;
-      coupleMap=L.map('coupleMap',{zoomControl:true,preferCanvas:true}).setView([43.42,17.20],10);
+      coupleMap=L.map('coupleMap',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([43.42,17.20],10);
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-        subdomains:'abcd',maxZoom:20,
-        attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
+        subdomains:'abcd',maxZoom:20
       }).addTo(coupleMap);
       groomTrailLine=L.polyline([],{color:'#2f6fbe',weight:4,opacity:.72}).addTo(coupleMap);
       brideTrailLine=L.polyline([],{color:'#cf4f83',weight:4,opacity:.72,dashArray:'7 7'}).addTo(coupleMap);
@@ -1241,18 +1247,31 @@
       if(!coupleMap) return;
       if(rows.groom){
         const ll=[rows.groom.lat,rows.groom.lng];
-        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup('<b>🤵 Mladoženja</b><br>Referentna lokacija');
+        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup('<b>Mladoženja</b>');
         else groomMarker.setLatLng(ll);
       }
       if(rows.bride){
         const ll=[rows.bride.lat,rows.bride.lng];
-        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup('<b>👰 Mlada</b>');
+        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup('<b>Mlada</b>');
         else brideMarker.setLatLng(ll);
       }
       groomTrailLine&&groomTrailLine.setLatLngs(groomTrail);
       brideTrailLine&&brideTrailLine.setLatLngs(brideTrail);
       const available=[rows.groom,rows.bride].filter(Boolean);
-      coupleMapStatus.textContent=available.length===2?'Obje lokacije aktivne. Trag prikazuje kretanje tijekom ove sesije.':available.length===1?'Prikazuje se trenutačno dostupna lokacija.':'Čekanje lokacija…';
+      const groomFresh=isFresh(rows.groom,180), brideFresh=isFresh(rows.bride,180);
+      if(groomFresh && brideFresh){
+        coupleMapStatus.textContent='UŽIVO';
+        mapLiveDot&&mapLiveDot.classList.remove('off');
+      }else if(groomFresh){
+        coupleMapStatus.textContent='DOSTUPNA SAMO MLADOŽENJINA LOKACIJA';
+        mapLiveDot&&mapLiveDot.classList.remove('off');
+      }else if(brideFresh){
+        coupleMapStatus.textContent='DOSTUPNA SAMO MLADENKINA LOKACIJA';
+        mapLiveDot&&mapLiveDot.classList.remove('off');
+      }else{
+        coupleMapStatus.textContent='NIJE UKLJUČENA LOKACIJA';
+        mapLiveDot&&mapLiveDot.classList.add('off');
+      }
     }
     function fitCoupleMap(){
       if(!coupleMap) return;
@@ -1264,7 +1283,6 @@
       else coupleMap.setView([43.42,17.20],10);
     }
     function openCoupleMap(){
-      if(!(rows.groom||rows.bride)) return;
       coupleMapModal.classList.add('open'); coupleMapModal.setAttribute('aria-hidden','false');
       initCoupleMap(); updateCoupleMap();
       setTimeout(()=>{coupleMap.invalidateSize();fitCoupleMap();},80);
@@ -1368,7 +1386,7 @@
 
     ownerLogin.addEventListener('click',function(){
       trackingControls.style.display=isOwner?'block':'none'; syncTrackingUi();
-      if(isOwner){ roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja — referentni uređaj':'👰 Mlada'; if(isTrackingWanted())resumeTrackingIfWanted(); }
+      if(isOwner){ roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada'; if(isTrackingWanted())resumeTrackingIfWanted(); }
     });
 
     /* Pozivnica je skrivena iza četvrte navigacijske ikone. */
@@ -1381,7 +1399,7 @@
     if(activeRole==='groom'||activeRole==='bride'){
       isOwner=true; trackingControls.style.display='block';
       ownerStatus.textContent='Prijavljen/a: '+(activeRole==='groom'?'Mladoženja':'Mlada')+'.';
-      roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja — referentni uređaj':'👰 Mlada';
+      roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada';
     }
     syncTrackingUi(); resumeTrackingIfWanted(); fetchLiveLocation(); setInterval(fetchLiveLocation,10000);
 
