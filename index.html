@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 
   <style>
     :root{
@@ -576,6 +577,25 @@
       .live-map-btn{ width:100%; justify-content:center; }
     }
 
+    /* ===== KARTA MLADENACA ===== */
+    .live-map-btn{cursor:pointer;font-family:'Libre Baskerville',Georgia,serif;}
+    .couple-map-modal{position:fixed;inset:0;z-index:1000;background:rgba(20,18,15,.58);display:none;align-items:center;justify-content:center;padding:18px;}
+    .couple-map-modal.open{display:flex;}
+    .couple-map-panel{width:min(1100px,100%);height:min(82vh,760px);background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;display:flex;flex-direction:column;}
+    .couple-map-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:#fff;}
+    .couple-map-head strong{font-size:18px;}
+    .couple-map-head small{display:block;color:var(--muted);margin-top:4px;}
+    .couple-map-close{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:26px;line-height:1;cursor:pointer;}
+    #coupleMap{flex:1;min-height:420px;background:#eee;}
+    .couple-map-foot{display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:11px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);background:#fff;}
+    .couple-map-legend{display:inline-flex;align-items:center;gap:6px;}
+    .legend-dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+    .legend-dot.groom{background:#2f6fbe}.legend-dot.bride{background:#cf4f83}
+    .couple-map-icon{background:transparent!important;border:0!important;}
+    .person-pin{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.35);}
+    .person-pin.groom{background:#2f6fbe}.person-pin.bride{background:#cf4f83}
+    @media(max-width:640px){.couple-map-modal{padding:0}.couple-map-panel{width:100%;height:100vh;border-radius:0}.couple-map-head strong{font-size:16px}#coupleMap{min-height:0}}
+
   </style>
 </head>
 <body>
@@ -636,7 +656,7 @@
                 <span class="person-age" id="brideAge">—</span>
               </div>
             </div>
-            <a class="live-map-btn" id="liveMapBtn" href="#" target="_blank" rel="noopener">⌖ Otvori lokaciju</a>
+            <button class="live-map-btn" id="liveMapBtn" type="button">⌖ Otvori lokaciju</button>
           </div>
           <div class="live-box">
             <small>Predviđeno vrijeme dolaska</small>
@@ -801,6 +821,22 @@
       </article>
     </section>
   </main>
+
+  <div class="couple-map-modal" id="coupleMapModal" aria-hidden="true">
+    <div class="couple-map-panel" role="dialog" aria-modal="true" aria-label="Lokacija mladoženje i mlade">
+      <div class="couple-map-head">
+        <div><strong>Lokacija mladoženje i mlade</strong><small>Carto Voyager · položaji se osvježavaju uživo</small></div>
+        <button class="couple-map-close" id="coupleMapClose" type="button" aria-label="Zatvori kartu">×</button>
+      </div>
+      <div id="coupleMap"></div>
+      <div class="couple-map-foot">
+        <span class="couple-map-legend"><span class="legend-dot groom"></span> Mladoženja — referentni</span>
+        <span class="couple-map-legend"><span class="legend-dot bride"></span> Mlada</span>
+        <span id="coupleMapStatus">Čekanje lokacija…</span>
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     /*
@@ -1157,17 +1193,87 @@
 
     function updateMapButton(){
       const g=rows.groom,b=rows.bride;
-      if(g&&b){
-        liveMapBtn.href='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(g.lat+','+g.lng)+'&destination='+encodeURIComponent(b.lat+','+b.lng)+'&travelmode=driving';
-        liveMapBtn.textContent='⌖ Otvori lokaciju mladoženje i mlade';
-      }else if(g||b){
-        const r=g||b;
-        liveMapBtn.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.lat+','+r.lng);
-        liveMapBtn.textContent='⌖ Otvori dostupnu lokaciju';
-      }else{
-        liveMapBtn.href='#'; liveMapBtn.textContent='⌖ Lokacija još nije dostupna';
+      if(g&&b) liveMapBtn.textContent='⌖ Otvori lokaciju mladoženje i mlade';
+      else if(g||b) liveMapBtn.textContent='⌖ Otvori dostupnu lokaciju';
+      else liveMapBtn.textContent='⌖ Lokacija još nije dostupna';
+      liveMapBtn.disabled=!(g||b);
+      updateCoupleMap();
+    }
+
+    /* Posebna Leaflet karta s Carto Voyager podlogom. Trag se gradi iz
+       uzastopnih očitanja tijekom otvorene stranice, pa je kretanje vidljivo. */
+    const coupleMapModal=document.getElementById('coupleMapModal');
+    const coupleMapClose=document.getElementById('coupleMapClose');
+    const coupleMapStatus=document.getElementById('coupleMapStatus');
+    let coupleMap=null, groomMarker=null, brideMarker=null, groomTrailLine=null, brideTrailLine=null;
+    const groomTrail=[], brideTrail=[];
+    let lastTrailKey={groom:null,bride:null};
+
+    function personDivIcon(role){
+      const emoji=role==='groom'?'🤵':'👰';
+      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'">'+emoji+'</div>',iconSize:[42,42],iconAnchor:[21,21],popupAnchor:[0,-23]});
+    }
+    function initCoupleMap(){
+      if(coupleMap) return;
+      coupleMap=L.map('coupleMap',{zoomControl:true,preferCanvas:true}).setView([43.42,17.20],10);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+        subdomains:'abcd',maxZoom:20,
+        attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(coupleMap);
+      groomTrailLine=L.polyline([],{color:'#2f6fbe',weight:4,opacity:.72}).addTo(coupleMap);
+      brideTrailLine=L.polyline([],{color:'#cf4f83',weight:4,opacity:.72,dashArray:'7 7'}).addTo(coupleMap);
+    }
+    function appendTrail(role,row){
+      if(!row || typeof row.lat!=='number' || typeof row.lng!=='number') return;
+      const key=(row.updated_at||'')+'|'+row.lat.toFixed(6)+'|'+row.lng.toFixed(6);
+      if(lastTrailKey[role]===key) return;
+      lastTrailKey[role]=key;
+      const trail=role==='groom'?groomTrail:brideTrail;
+      const prev=trail[trail.length-1];
+      if(!prev || distanceM(prev[0],prev[1],row.lat,row.lng)>8){
+        trail.push([row.lat,row.lng]);
+        if(trail.length>250) trail.shift();
       }
     }
+    function updateCoupleMap(){
+      if(typeof L==='undefined') return;
+      appendTrail('groom',rows.groom); appendTrail('bride',rows.bride);
+      if(!coupleMap) return;
+      if(rows.groom){
+        const ll=[rows.groom.lat,rows.groom.lng];
+        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup('<b>🤵 Mladoženja</b><br>Referentna lokacija');
+        else groomMarker.setLatLng(ll);
+      }
+      if(rows.bride){
+        const ll=[rows.bride.lat,rows.bride.lng];
+        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup('<b>👰 Mlada</b>');
+        else brideMarker.setLatLng(ll);
+      }
+      groomTrailLine&&groomTrailLine.setLatLngs(groomTrail);
+      brideTrailLine&&brideTrailLine.setLatLngs(brideTrail);
+      const available=[rows.groom,rows.bride].filter(Boolean);
+      coupleMapStatus.textContent=available.length===2?'Obje lokacije aktivne. Trag prikazuje kretanje tijekom ove sesije.':available.length===1?'Prikazuje se trenutačno dostupna lokacija.':'Čekanje lokacija…';
+    }
+    function fitCoupleMap(){
+      if(!coupleMap) return;
+      const pts=[];
+      if(rows.groom) pts.push([rows.groom.lat,rows.groom.lng]);
+      if(rows.bride) pts.push([rows.bride.lat,rows.bride.lng]);
+      if(pts.length===2) coupleMap.fitBounds(pts,{padding:[70,70],maxZoom:15});
+      else if(pts.length===1) coupleMap.setView(pts[0],15);
+      else coupleMap.setView([43.42,17.20],10);
+    }
+    function openCoupleMap(){
+      if(!(rows.groom||rows.bride)) return;
+      coupleMapModal.classList.add('open'); coupleMapModal.setAttribute('aria-hidden','false');
+      initCoupleMap(); updateCoupleMap();
+      setTimeout(()=>{coupleMap.invalidateSize();fitCoupleMap();},80);
+    }
+    function closeCoupleMap(){coupleMapModal.classList.remove('open');coupleMapModal.setAttribute('aria-hidden','true');}
+    liveMapBtn.addEventListener('click',openCoupleMap);
+    coupleMapClose.addEventListener('click',closeCoupleMap);
+    coupleMapModal.addEventListener('click',e=>{if(e.target===coupleMapModal)closeCoupleMap();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&coupleMapModal.classList.contains('open'))closeCoupleMap();});
 
     function renderCouple(){
       groomPlace.textContent=rows.groom?nearestPlace(rows.groom.lat,rows.groom.lng):'Lokacija nije uključena';
