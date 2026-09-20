@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Svadbena pozivnica — Josip Alpeza</title>
+  <title>Svadbena pozivnica</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
@@ -601,6 +601,60 @@
     .person-pin.groom{background:#2f6fbe}.person-pin.bride{background:#cf4f83}
     @media(max-width:640px){.couple-map-modal{padding:5px}.couple-map-panel{width:calc(100vw - 10px);height:calc(100dvh - 10px);max-height:none;border-radius:18px}.couple-map-head{padding:12px 13px}.couple-map-head strong{font-size:15px}#coupleMap{min-height:0}.couple-map-foot{padding:9px 11px;gap:10px;font-size:11px}}
 
+
+    .place-pin{
+      width:42px;height:42px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      background:#111;color:#fff;border:3px solid #fff;
+      box-shadow:0 3px 12px rgba(0,0,0,.30);
+      position:relative;
+    }
+    .place-pin::after{
+      content:"";position:absolute;bottom:-6px;left:50%;
+      width:11px;height:11px;transform:translateX(-50%) rotate(45deg);
+      background:#111;border-right:3px solid #fff;border-bottom:3px solid #fff;border-radius:2px;
+    }
+    .place-pin svg{width:24px;height:24px;position:relative;z-index:2;stroke:#fff;fill:none;stroke-width:2.2}
+    .map-link.shared-map-open{font-family:'Libre Baskerville',Georgia,serif;cursor:pointer;}
+
+
+    /* ===== NAVIGACIJA NA ISTOJ KARTI ===== */
+    .map-nav-wrap{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+    .map-nav-select,.map-nav-btn,.map-nav-stop{
+      border:1px solid rgba(0,0,0,.16);background:#fff;color:#111;border-radius:999px;
+      padding:9px 12px;font-family:'Libre Baskerville',Georgia,serif;font-size:12px;
+    }
+    .map-nav-select{max-width:190px}
+    .map-nav-btn,.map-nav-stop{cursor:pointer}
+    .map-nav-btn:hover,.map-nav-stop:hover{background:#111;color:#fff}
+    .map-nav-stop{display:none}
+    .route-panel{
+      display:none;position:absolute;left:10px;right:10px;bottom:10px;z-index:550;
+      background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.12);
+      border-radius:18px;box-shadow:0 12px 35px rgba(0,0,0,.18);padding:12px 14px;
+      max-height:38%;overflow:auto;backdrop-filter:blur(8px);
+    }
+    .route-panel.open{display:block}
+    .route-summary{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .route-summary strong{font-size:14px}
+    .route-summary span{font-size:11px;color:var(--muted)}
+    .route-instructions{margin:9px 0 0;padding:0;list-style:none}
+    .route-instructions li{padding:7px 0;border-top:1px solid rgba(0,0,0,.07);font-size:11px;line-height:1.45}
+    .route-error{font-size:11px;color:#9c2d25;margin-top:6px}
+    .user-route-icon{background:transparent!important;border:0!important}
+    .user-route-pin{
+      width:22px;height:22px;border-radius:50%;background:#4979c7;border:4px solid #fff;
+      box-shadow:0 2px 10px rgba(0,0,0,.30),0 0 0 5px rgba(73,121,199,.18);
+    }
+    .couple-map-panel{position:relative}
+    @media(max-width:640px){
+      .couple-map-foot{display:grid;grid-template-columns:1fr 1fr;align-items:center}
+      .map-nav-wrap{grid-column:1/-1;width:100%;display:grid;grid-template-columns:1fr auto auto;margin-left:0}
+      .map-nav-select{max-width:none;width:100%;min-width:0}
+      .map-nav-btn,.map-nav-stop{padding:9px 11px}
+      .route-panel{left:5px;right:5px;bottom:5px;max-height:42%;border-radius:15px}
+    }
+
   </style>
 </head>
 <body>
@@ -745,7 +799,7 @@
           <h2>Crkva sv. Petra, apostola, Cista Provo</h2>
           <p>Obred vjenčanja počinje u 16.00 sati.</p>
           <div class="location"><strong>Lokacija:</strong><br>Ulica Svetog Petra 1,<br> Cista Provo</div>
-          <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=crkva%20Cista%20Provo" target="_blank" rel="noopener">Otvori lokaciju</a>
+          <button class="map-link shared-map-open" type="button" data-map-target="church">Otvori lokaciju</button>
         </div>
       </article>
     </section>
@@ -757,9 +811,9 @@
           <h2>Svadbeni salon Otok, Grude</h2>
           <p>Svečana večera počinje u 18.00 sati.</p>
           <div class="location"><strong>Lokacija:</strong><br>Ulica fra Gabre Grubišića 19,<br>Grude – Gomilice</div>
-          <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Svadbeni%20salon%20Otok%20Grude%20Ulica%20fra%20Gabre%20Grubi%C5%A1i%C4%87a%2019" target="_blank" rel="noopener">Otvori lokaciju</a>
+          <button class="map-link shared-map-open" type="button" data-map-target="salon">Otvori lokaciju</button>
         </div>
-        <img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHujg_Rfcd71KmANp7kqUzt-YL4UYTD5JVUHwT9_33tY8NF2U11siN2zXPSQCY-b3NENAps6qC-LjJcQl25sdG66L2DiIW9aDFuECnuGtYC_6BYNccqun96RaPK6gzNFYh5-lts9w=s680-w680-h510-rw" alt="Svadbeni salon Otok u Grudama">
+        <img src="https://www.hotelotok.net/images/svadbeni-salon-7.jpg" referrerpolicy="no-referrer" alt="Svadbeni salon Otok u Grudama">
       </article>
     </section>
 
@@ -828,18 +882,36 @@
   </main>
 
   <div class="couple-map-modal" id="coupleMapModal" aria-hidden="true">
-    <div class="couple-map-panel" role="dialog" aria-modal="true" aria-label="Lokacija mladoženje i mlade">
+    <div class="couple-map-panel" role="dialog" aria-modal="true" aria-label="Karta lokacija">
       <div class="couple-map-head">
         <div>
-          <strong>Lokacija mladoženje i mlade</strong>
+          <strong id="coupleMapTitle">Lokacije uživo</strong>
           <div class="map-live-status"><span class="map-live-dot off" id="mapLiveDot"></span><span id="coupleMapStatus">NIJE UKLJUČENA LOKACIJA</span></div>
         </div>
         <button class="couple-map-close" id="coupleMapClose" type="button" aria-label="Zatvori kartu">×</button>
       </div>
       <div id="coupleMap"></div>
+      <div class="route-panel" id="routePanel" aria-live="polite">
+        <div class="route-summary">
+          <div><strong id="routeTitle">Navigacija</strong><br><span id="routeMeta">—</span></div>
+          <button class="couple-map-close" id="routePanelClose" type="button" aria-label="Sakrij upute" style="width:32px;height:32px;font-size:20px">×</button>
+        </div>
+        <div class="route-error" id="routeError"></div>
+        <ol class="route-instructions" id="routeInstructions"></ol>
+      </div>
       <div class="couple-map-foot">
         <span class="couple-map-legend"><span class="legend-dot groom"></span> Mladoženja</span>
         <span class="couple-map-legend"><span class="legend-dot bride"></span> Mlada</span>
+        <div class="map-nav-wrap">
+          <select class="map-nav-select" id="mapNavTarget" aria-label="Odredište navigacije">
+            <option value="church">Crkva sv. Petra</option>
+            <option value="salon">Svadbeni salon Otok</option>
+            <option value="groom">Mladoženja</option>
+            <option value="bride">Mlada</option>
+          </select>
+          <button class="map-nav-btn" id="mapNavStart" type="button">Navigiraj</button>
+          <button class="map-nav-stop" id="mapNavStop" type="button">Prekini</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1112,7 +1184,7 @@
       return 'na putu';
     }
     function ageText(row){
-      if(!row) return 'nije aktivno';
+      if(!row) return 'nije dostupno';
       const s=Math.max(0,Math.round((Date.now()-new Date(row.updated_at).getTime())/1000));
       if(s<60) return 'prije '+s+' s';
       return 'prije '+Math.round(s/60)+' min';
@@ -1210,7 +1282,9 @@
     const coupleMapClose=document.getElementById('coupleMapClose');
     const coupleMapStatus=document.getElementById('coupleMapStatus');
     const mapLiveDot=document.getElementById('mapLiveDot');
-    let coupleMap=null, groomMarker=null, brideMarker=null, groomTrailLine=null, brideTrailLine=null;
+    let coupleMap=null, groomMarker=null, brideMarker=null, churchMarker=null, salonMarker=null, groomTrailLine=null, brideTrailLine=null;
+    let routeLine=null, routeUserMarker=null, routeWatchId=null, routeLastOrigin=null, routeLastRequest=0, activeNavTarget=null;
+    let sharedMapMode='couple';
     const groomTrail=[], brideTrail=[];
     let lastTrailKey={groom:null,bride:null};
 
@@ -1220,6 +1294,16 @@
       const svg=role==='groom'?groomSvg:brideSvg;
       return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'">'+svg+'</div>',iconSize:[46,52],iconAnchor:[23,48],popupAnchor:[0,-46]});
     }
+    function placeDivIcon(type){
+      const churchSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3v7M12.5 6.5h7"/><path d="M7 14l9-7 9 7v14H7z"/><path d="M13 28v-8h6v8"/></svg>`;
+      const salonSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 9v17M24 9v17"/><path d="M6 9h4M22 9h4"/><path d="M10 16h12"/><path d="M12 16c0 5 1.8 8 4 8s4-3 4-8"/><path d="M16 24v4"/></svg>`;
+      const svg=type==='church'?churchSvg:salonSvg;
+      return L.divIcon({
+        className:'couple-map-icon',
+        html:'<div class="place-pin">'+svg+'</div>',
+        iconSize:[42,48],iconAnchor:[21,44],popupAnchor:[0,-42]
+      });
+    }
     function initCoupleMap(){
       if(coupleMap) return;
       coupleMap=L.map('coupleMap',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([43.42,17.20],10);
@@ -1228,6 +1312,10 @@
       }).addTo(coupleMap);
       groomTrailLine=L.polyline([],{color:'#2f6fbe',weight:4,opacity:.72}).addTo(coupleMap);
       brideTrailLine=L.polyline([],{color:'#cf4f83',weight:4,opacity:.72,dashArray:'7 7'}).addTo(coupleMap);
+      churchMarker=L.marker([LIVE_POINTS[2].lat,LIVE_POINTS[2].lng],{icon:placeDivIcon('church'),zIndexOffset:700})
+        .addTo(coupleMap).bindPopup('<b>Crkva sv. Petra, apostola</b><br>Cista Provo');
+      salonMarker=L.marker([LIVE_POINTS[3].lat,LIVE_POINTS[3].lng],{icon:placeDivIcon('salon'),zIndexOffset:650})
+        .addTo(coupleMap).bindPopup('<b>Svadbeni salon Otok</b><br>Grude');
     }
     function appendTrail(role,row){
       if(!row || typeof row.lat!=='number' || typeof row.lng!=='number') return;
@@ -1272,26 +1360,223 @@
         coupleMapStatus.textContent='NIJE UKLJUČENA LOKACIJA';
         mapLiveDot&&mapLiveDot.classList.add('off');
       }
+      if(activeNavTarget==='groom' || activeNavTarget==='bride'){
+        // Ako se mladoženja/mlada pomaknu, sljedeće GPS očitanje korisnika
+        // automatski računa novu rutu prema njihovom novom položaju.
+        routeLastRequest=0;
+      }
     }
     function fitCoupleMap(){
       if(!coupleMap) return;
+      if(sharedMapMode==='church'){
+        coupleMap.setView([LIVE_POINTS[2].lat,LIVE_POINTS[2].lng],17,{animate:true});
+        churchMarker && setTimeout(()=>churchMarker.openPopup(),280);
+        return;
+      }
+      if(sharedMapMode==='salon'){
+        coupleMap.setView([LIVE_POINTS[3].lat,LIVE_POINTS[3].lng],17,{animate:true});
+        salonMarker && setTimeout(()=>salonMarker.openPopup(),280);
+        return;
+      }
       const pts=[];
       if(rows.groom) pts.push([rows.groom.lat,rows.groom.lng]);
       if(rows.bride) pts.push([rows.bride.lat,rows.bride.lng]);
       if(pts.length===2) coupleMap.fitBounds(pts,{padding:[70,70],maxZoom:15});
       else if(pts.length===1) coupleMap.setView(pts[0],15);
-      else coupleMap.setView([43.42,17.20],10);
+      else coupleMap.fitBounds([
+        [LIVE_POINTS[2].lat,LIVE_POINTS[2].lng],
+        [LIVE_POINTS[3].lat,LIVE_POINTS[3].lng]
+      ],{padding:[60,60],maxZoom:11});
     }
-    function openCoupleMap(){
+    function setSharedMapHeader(mode){
+      const title=document.getElementById('coupleMapTitle');
+      if(!title) return;
+      if(mode==='church') title.textContent='Crkva sv. Petra, apostola';
+      else if(mode==='salon') title.textContent='Svadbeni salon Otok';
+      else title.textContent='Lokacije uživo';
+    }
+    function openCoupleMap(mode='couple'){
+      sharedMapMode=mode;
+      setSharedMapHeader(mode);
       coupleMapModal.classList.add('open'); coupleMapModal.setAttribute('aria-hidden','false');
       initCoupleMap(); updateCoupleMap();
       setTimeout(()=>{coupleMap.invalidateSize();fitCoupleMap();},80);
     }
     function closeCoupleMap(){coupleMapModal.classList.remove('open');coupleMapModal.setAttribute('aria-hidden','true');}
-    liveMapBtn.addEventListener('click',openCoupleMap);
+    liveMapBtn.addEventListener('click',()=>openCoupleMap('couple'));
+    document.querySelectorAll('.shared-map-open').forEach(btn=>{
+      btn.addEventListener('click',()=>openCoupleMap(btn.dataset.mapTarget||'couple'));
+    });
     coupleMapClose.addEventListener('click',closeCoupleMap);
     coupleMapModal.addEventListener('click',e=>{if(e.target===coupleMapModal)closeCoupleMap();});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&coupleMapModal.classList.contains('open'))closeCoupleMap();});
+
+
+    const mapNavTarget=document.getElementById('mapNavTarget');
+    const mapNavStart=document.getElementById('mapNavStart');
+    const mapNavStop=document.getElementById('mapNavStop');
+    const routePanel=document.getElementById('routePanel');
+    const routePanelClose=document.getElementById('routePanelClose');
+    const routeTitle=document.getElementById('routeTitle');
+    const routeMeta=document.getElementById('routeMeta');
+    const routeError=document.getElementById('routeError');
+    const routeInstructions=document.getElementById('routeInstructions');
+
+    function destinationForNavigation(key){
+      if(key==='church') return {name:'Crkva sv. Petra, apostola',lat:LIVE_POINTS[2].lat,lng:LIVE_POINTS[2].lng};
+      if(key==='salon') return {name:'Svadbeni salon Otok',lat:LIVE_POINTS[3].lat,lng:LIVE_POINTS[3].lng};
+      if(key==='groom' && rows.groom) return {name:'Mladoženja',lat:rows.groom.lat,lng:rows.groom.lng};
+      if(key==='bride' && rows.bride) return {name:'Mlada',lat:rows.bride.lat,lng:rows.bride.lng};
+      return null;
+    }
+    function humanDistance(m){
+      if(m<1000) return Math.round(m)+' m';
+      return (m/1000).toLocaleString('hr-HR',{minimumFractionDigits:1,maximumFractionDigits:1})+' km';
+    }
+    function humanDuration(sec){
+      const min=Math.max(1,Math.round(sec/60));
+      if(min<60) return min+' min';
+      const h=Math.floor(min/60), rest=min%60;
+      return h+' h'+(rest?' '+rest+' min':'');
+    }
+    function hrInstruction(step){
+      const type=step.maneuver&&step.maneuver.type||'';
+      const mod=step.maneuver&&step.maneuver.modifier||'';
+      const road=(step.name||'').trim();
+      let action='Nastavite';
+      if(type==='depart') action='Krenite';
+      else if(type==='arrive') action='Stigli ste na odredište';
+      else if(type==='turn'){
+        if(mod.includes('left')) action='Skrenite lijevo';
+        else if(mod.includes('right')) action='Skrenite desno';
+        else action='Skrenite';
+      }else if(type==='roundabout' || type==='rotary') action='Uđite u kružni tok';
+      else if(type==='merge') action='Uključite se na cestu';
+      else if(type==='fork') action=mod.includes('left')?'Držite se lijevo':mod.includes('right')?'Držite se desno':'Nastavite račvanjem';
+      else if(type==='continue') action='Nastavite ravno';
+      else if(type==='new name') action='Nastavite';
+      else if(type==='end of road') action=mod.includes('left')?'Na kraju ceste skrenite lijevo':mod.includes('right')?'Na kraju ceste skrenite desno':'Na kraju ceste skrenite';
+      return action+(road && type!=='arrive'?' na '+road:'')+(step.distance>25?' · '+humanDistance(step.distance):'');
+    }
+    function renderRoute(route,dest){
+      routeTitle.textContent='Prema: '+dest.name;
+      routeMeta.textContent=humanDistance(route.distance)+' · oko '+humanDuration(route.duration);
+      routeError.textContent='';
+      routeInstructions.innerHTML='';
+      const steps=(route.legs||[]).flatMap(l=>l.steps||[]);
+      steps.slice(0,20).forEach(step=>{
+        const li=document.createElement('li');
+        li.textContent=hrInstruction(step);
+        routeInstructions.appendChild(li);
+      });
+      routePanel.classList.add('open');
+    }
+    async function requestRoute(origin,force=false){
+      if(!coupleMap || !activeNavTarget) return;
+      const dest=destinationForNavigation(activeNavTarget);
+      if(!dest){
+        routePanel.classList.add('open');
+        routeTitle.textContent='Navigacija';
+        routeMeta.textContent='Odredište trenutačno nije dostupno.';
+        routeError.textContent=activeNavTarget==='groom'?'Mladoženjina lokacija nije dostupna.':'Mladenkina lokacija nije dostupna.';
+        routeInstructions.innerHTML='';
+        return;
+      }
+      const moved=routeLastOrigin ? distanceM(routeLastOrigin.lat,routeLastOrigin.lng,origin.lat,origin.lng) : Infinity;
+      if(!force && moved<40 && Date.now()-routeLastRequest<15000) return;
+      routeLastOrigin={lat:origin.lat,lng:origin.lng};
+      routeLastRequest=Date.now();
+
+      if(!routeUserMarker){
+        routeUserMarker=L.marker([origin.lat,origin.lng],{
+          icon:L.divIcon({className:'user-route-icon',html:'<div class="user-route-pin"></div>',iconSize:[22,22],iconAnchor:[11,11]}),
+          zIndexOffset:1200
+        }).addTo(coupleMap).bindPopup('<b>Vaša lokacija</b>');
+      }else routeUserMarker.setLatLng([origin.lat,origin.lng]);
+
+      routeTitle.textContent='Izračun rute…';
+      routeMeta.textContent='Prema: '+dest.name;
+      routeError.textContent='';
+      routePanel.classList.add('open');
+
+      try{
+        const url='https://router.project-osrm.org/route/v1/driving/'
+          +origin.lng+','+origin.lat+';'+dest.lng+','+dest.lat
+          +'?overview=full&geometries=geojson&steps=true&alternatives=false';
+        const response=await fetch(url,{cache:'no-store'});
+        if(!response.ok) throw new Error('HTTP '+response.status);
+        const data=await response.json();
+        if(data.code!=='Ok' || !data.routes || !data.routes[0]) throw new Error(data.message||'Ruta nije pronađena');
+        const route=data.routes[0];
+        const latlngs=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+        if(!routeLine) routeLine=L.polyline(latlngs,{weight:6,opacity:.78,color:'#111'}).addTo(coupleMap);
+        else routeLine.setLatLngs(latlngs);
+        coupleMap.fitBounds(routeLine.getBounds(),{padding:[45,45],maxZoom:17});
+        renderRoute(route,dest);
+      }catch(err){
+        console.error('Navigacija:',err);
+        routeTitle.textContent='Navigacija nije dostupna';
+        routeMeta.textContent='Pokušaj ponovno za nekoliko sekundi.';
+        routeError.textContent='Nije uspjelo dohvatiti cestovnu rutu.';
+        routeInstructions.innerHTML='';
+      }
+    }
+    function onRoutePosition(pos){
+      requestRoute({lat:pos.coords.latitude,lng:pos.coords.longitude});
+    }
+    function startMapNavigation(){
+      if(!navigator.geolocation){
+        routePanel.classList.add('open');
+        routeTitle.textContent='Navigacija nije dostupna';
+        routeMeta.textContent='Ovaj preglednik nema geolokaciju.';
+        return;
+      }
+      activeNavTarget=mapNavTarget.value;
+      const dest=destinationForNavigation(activeNavTarget);
+      if(!dest){
+        requestRoute({lat:0,lng:0},true);
+        return;
+      }
+      mapNavStart.disabled=true;
+      mapNavStart.textContent='Tražim GPS…';
+      navigator.geolocation.getCurrentPosition(pos=>{
+        initCoupleMap();
+        requestRoute({lat:pos.coords.latitude,lng:pos.coords.longitude},true);
+        mapNavStart.disabled=false;
+        mapNavStart.textContent='Navigiraj';
+        mapNavStop.style.display='inline-block';
+        if(routeWatchId!==null) navigator.geolocation.clearWatch(routeWatchId);
+        routeWatchId=navigator.geolocation.watchPosition(onRoutePosition,()=>{},{
+          enableHighAccuracy:true,maximumAge:5000,timeout:20000
+        });
+      },err=>{
+        mapNavStart.disabled=false;
+        mapNavStart.textContent='Navigiraj';
+        routePanel.classList.add('open');
+        routeTitle.textContent='Lokacija nije dostupna';
+        routeMeta.textContent='Dopusti pristup svojoj lokaciji za navigaciju.';
+        routeError.textContent=err.message||'GPS nije dostupan.';
+      },{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
+    }
+    function stopMapNavigation(){
+      if(routeWatchId!==null){navigator.geolocation.clearWatch(routeWatchId);routeWatchId=null;}
+      if(routeLine){coupleMap.removeLayer(routeLine);routeLine=null;}
+      if(routeUserMarker){coupleMap.removeLayer(routeUserMarker);routeUserMarker=null;}
+      activeNavTarget=null;routeLastOrigin=null;
+      routePanel.classList.remove('open');
+      mapNavStop.style.display='none';
+      fitCoupleMap();
+    }
+    mapNavStart.addEventListener('click',startMapNavigation);
+    mapNavStop.addEventListener('click',stopMapNavigation);
+    routePanelClose.addEventListener('click',()=>routePanel.classList.remove('open'));
+    mapNavTarget.addEventListener('change',()=>{
+      if(activeNavTarget){
+        activeNavTarget=mapNavTarget.value;
+        routeLastOrigin=null;
+        navigator.geolocation.getCurrentPosition(pos=>requestRoute({lat:pos.coords.latitude,lng:pos.coords.longitude},true),()=>{},{enableHighAccuracy:true,maximumAge:5000,timeout:12000});
+      }
+    });
 
     function renderCouple(){
       groomPlace.textContent=rows.groom?nearestPlace(rows.groom.lat,rows.groom.lng):'Lokacija nije uključena';
