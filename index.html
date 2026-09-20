@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#fbfaf7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Svatovi uživo" />
   <title>Svadbena pozivnica</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -656,6 +660,7 @@
     }
 
   </style>
+  <link rel="manifest" href="./manifest.json">
 </head>
 <body>
   <nav class="top-nav" aria-label="Navigacija pozivnice">
@@ -813,7 +818,7 @@
           <div class="location"><strong>Lokacija:</strong><br>Ulica fra Gabre Grubišića 19,<br>Grude – Gomilice</div>
           <button class="map-link shared-map-open" type="button" data-map-target="salon">Otvori lokaciju</button>
         </div>
-        <img src="https://www.hotelotok.net/images/svadbeni-salon-7.jpg" referrerpolicy="no-referrer" alt="Svadbeni salon Otok u Grudama">
+        <img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHujg_Rfcd71KmANp7kqUzt-YL4UYTD5JVUHwT9_33tY8NF2U11siN2zXPSQCY-b3NENAps6qC-LjJcQl25sdG66L2DiIW9aDFuECnuGtYC_6BYNccqun96RaPK6gzNFYh5-lts9w=s680-w680-h510-rw" alt="Svadbeni salon Otok u Grudama">
       </article>
     </section>
 
@@ -852,7 +857,7 @@
 
         <div class="owner-panel">
           <h3>Praćenje mladenaca</h3>
-          <p>Pristup imaju samo mladenci. Svako se prijavljuje vlastitom šifrom; sustav prema šifri zna čiju lokaciju šalje.</p>
+          <p>Pristup imaju samo mladenci. Svako se prijavljuje vlastitom šifrom; sustav prema šifri zna čiju lokaciju šalje.</p><p style="font-size:12px;color:var(--muted);margin:.35rem 0 0">Nakon prijave šifrom praćenje se pokreće automatski. Drži ovu stranicu otvorenu dok želiš slati lokaciju. Ako preglednik privremeno obustavi stranicu, praćenje se automatski nastavlja čim se stranica ponovno aktivira. Posljednja uspješno poslana lokacija ostaje vidljiva gostima.</p>
           <div class="owner-row">
             <input type="password" id="ownerPin" inputmode="numeric" maxlength="4" placeholder="Šifra mladoženje / mlade">
             <button type="button" id="ownerLogin">Prijavi se</button>
@@ -1184,7 +1189,7 @@
       return 'na putu';
     }
     function ageText(row){
-      if(!row) return 'nije dostupno';
+      if(!row) return 'nije aktivno';
       const s=Math.max(0,Math.round((Date.now()-new Date(row.updated_at).getTime())/1000));
       if(s<60) return 'prije '+s+' s';
       return 'prije '+Math.round(s/60)+' min';
@@ -1629,7 +1634,10 @@
       rows[activeRole]=row; renderCouple();
       const {error}=await supabaseClient.from('wedding_live_location').upsert(row,{onConflict:'id'});
       if(error){console.error(error);trackingStatus.textContent='GPS radi, ali slanje u Supabase nije uspjelo. Za dvije lokacije treba SQL pravilo za id 1 i 2.';}
-      else trackingStatus.textContent='Lokacija se šalje kao '+(activeRole==='groom'?'mladoženja':'mlada')+'. Točnost: ±'+Math.round(f.accuracy)+' m.';
+      else {
+        try{localStorage.setItem('weddingLastFix_'+activeRole,JSON.stringify(row));}catch(e){}
+        trackingStatus.textContent='Lokacija se šalje kao '+(activeRole==='groom'?'mladoženja':'mlada')+'. Točnost: ±'+Math.round(f.accuracy)+' m.';
+      }
     }
 
     async function requestWakeLock(){
@@ -1638,7 +1646,7 @@
     }
     function syncTrackingUi(){
       const on=isTrackingWanted()||watchId!==null;
-      trackingToggle.textContent=on?'Zaustavi praćenje moje lokacije':'Pokreni praćenje moje lokacije';
+      trackingToggle.textContent=on?'Zaustavi praćenje moje lokacije':'Ponovno pokreni praćenje';
       trackingToggle.classList.toggle('is-on',on);
     }
     function startTracking({remember=true}={}){
@@ -1671,7 +1679,7 @@
 
     ownerLogin.addEventListener('click',function(){
       trackingControls.style.display=isOwner?'block':'none'; syncTrackingUi();
-      if(isOwner){ roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada'; if(isTrackingWanted())resumeTrackingIfWanted(); }
+      if(isOwner){ roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada'; setTrackingWanted(true); startTracking({remember:false}); }
     });
 
     /* Pozivnica je skrivena iza četvrte navigacijske ikone. */
@@ -1682,7 +1690,7 @@
 
     // Ako je uređaj već bio prijavljen kao mladoženja ili mlada, pamti ulogu.
     if(activeRole==='groom'||activeRole==='bride'){
-      isOwner=true; trackingControls.style.display='block';
+      isOwner=true; trackingControls.style.display='block'; setTrackingWanted(true);
       ownerStatus.textContent='Prijavljen/a: '+(activeRole==='groom'?'Mladoženja':'Mlada')+'.';
       roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada';
     }
@@ -1691,5 +1699,14 @@
 
     loadAlbum();
   </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(console.warn);
+  });
+}
+</script>
+
 </body>
 </html>
