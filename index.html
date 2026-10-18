@@ -225,11 +225,13 @@
       grid-template-columns:1fr 1fr;
     }
 
-    .card img{
+    .card-grid{align-items:center;}
+    .card-grid > img{
       width:100%;
-      height:100%;
-      min-height:320px;
-      object-fit:cover;
+      height:240px;
+      min-height:0;
+      object-fit:contain;
+      padding:12px;
     }
 
     .card-body{
@@ -424,6 +426,7 @@
 
       .card.reverse .card-body{ order:2; }
       .card.reverse img{ order:1; }
+      .card-grid > img{height:220px;padding:12px;}
     }
 
     @media (max-width:640px){
@@ -659,7 +662,20 @@
       .route-panel{left:5px;right:5px;bottom:5px;max-height:42%;border-radius:15px}
     }
 
-  </style>
+    .person-icon{padding:0;overflow:hidden;border:2px solid #d6b27b;background:#fff;}
+  .person-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .person-pin{width:52px;height:52px;background:#fff!important;border:3px solid #fff;overflow:visible;}
+  .person-pin::after{display:none;}
+  .person-pin img{width:100%;height:100%;object-fit:cover;border-radius:50%;position:relative;z-index:2;}
+  .place-photo-pin{width:56px;height:56px;border-radius:50%;background:#fff;border:3px solid #d6b27b;box-shadow:0 3px 13px rgba(0,0,0,.32);overflow:hidden;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}
+  .place-photo-pin img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .couple-map-icon .person-pin{box-sizing:border-box;width:52px;height:52px;border-color:#d6b27b;}
+  .leaflet-popup-content-wrapper, .leaflet-popup-content, .leaflet-popup-tip-container{font-family:'Libre Baskerville',Georgia,serif!important;}
+  .leaflet-popup-content{font-size:12px;line-height:1.7;}
+  .map-credit{font-family:'Libre Baskerville',Georgia,serif;font-size:9px;color:#777;text-align:right;padding:3px 12px 7px;background:#fff;}
+  .map-credit a{color:inherit;text-decoration:none;}
+  .owner-panel,.tracking-controls{display:none!important;}
+</style>
   <link rel="manifest" href="./manifest.json">
 </head>
 <body>
@@ -710,12 +726,12 @@
             <strong id="livePlace">Čekanje lokacije mladenaca…</strong>
             <div class="couple-live">
               <div class="person-live">
-                <div class="person-icon" aria-hidden="true">🤵</div>
+                <div class="person-icon" aria-hidden="true"><img src="mladozenja.png" alt=""></div>
                 <div class="person-copy"><b>Mladoženja</b><span id="groomPlace">—</span></div>
                 <span class="person-age" id="groomAge">—</span>
               </div>
               <div class="person-live">
-                <div class="person-icon" aria-hidden="true">👰</div>
+                <div class="person-icon" aria-hidden="true"><img src="mlada.png" alt=""></div>
                 <div class="person-copy"><b>Mlada</b><span id="bridePlace">—</span></div>
                 <span class="person-age" id="brideAge">—</span>
               </div>
@@ -798,7 +814,7 @@
 
     <section class="info" id="crkva">
       <article class="card card-grid">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQO_oOMWyp96T9dutxHiUCR6-QH5YMN1dsZ7g&s" alt="Crkva u Cisti Provo">
+        <img src="crkva.png" alt="Crkva u Cisti Provo">
         <div class="card-body">
           <div class="label">Vjenčanje</div>
           <h2>Crkva sv. Petra, apostola, Cista Provo</h2>
@@ -818,7 +834,7 @@
           <div class="location"><strong>Lokacija:</strong><br>Ulica fra Gabre Grubišića 19,<br>Grude – Gomilice</div>
           <button class="map-link shared-map-open" type="button" data-map-target="salon">Otvori lokaciju</button>
         </div>
-        <img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHujg_Rfcd71KmANp7kqUzt-YL4UYTD5JVUHwT9_33tY8NF2U11siN2zXPSQCY-b3NENAps6qC-LjJcQl25sdG66L2DiIW9aDFuECnuGtYC_6BYNccqun96RaPK6gzNFYh5-lts9w=s680-w680-h510-rw" alt="Svadbeni salon Otok u Grudama">
+        <img src="svadbenisalon.png" alt="Svadbeni salon Otok u Grudama">
       </article>
     </section>
 
@@ -854,24 +870,7 @@
 
           <button type="submit" class="submit-btn">Pošalji u album gostiju</button>
         </form>
-
-        <div class="owner-panel">
-          <h3>Praćenje mladenaca</h3>
-          <p>Pristup imaju samo mladenci. Svako se prijavljuje vlastitom šifrom; sustav prema šifri zna čiju lokaciju šalje.</p><p style="font-size:12px;color:var(--muted);margin:.35rem 0 0">Nakon prijave šifrom praćenje se pokreće automatski. Drži ovu stranicu otvorenu dok želiš slati lokaciju. Ako preglednik privremeno obustavi stranicu, praćenje se automatski nastavlja čim se stranica ponovno aktivira. Posljednja uspješno poslana lokacija ostaje vidljiva gostima.</p>
-          <div class="owner-row">
-            <input type="password" id="ownerPin" inputmode="numeric" maxlength="4" placeholder="Šifra mladoženje / mlade">
-            <button type="button" id="ownerLogin">Prijavi se</button>
-          </div>
-          <small id="ownerStatus"></small>
-          <span class="role-badge" id="roleBadge"></span>
-
-          <div class="tracking-controls" id="trackingControls">
-            <button type="button" id="trackingToggle">Pokreni praćenje moje lokacije</button>
-            <small id="trackingStatus">Praćenje je isključeno.</small>
-          </div>
-        </div>
-
-        <div class="guest-albums" id="album-gostiju">
+<div class="guest-albums" id="album-gostiju">
           <div class="album-section">
             <h3>Crkva</h3>
             <div class="album-gallery" id="churchGallery"></div>
@@ -904,6 +903,7 @@
         <div class="route-error" id="routeError"></div>
         <ol class="route-instructions" id="routeInstructions"></ol>
       </div>
+      <div class="map-credit">Kartografski podaci: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener">© CARTO</a></div>
       <div class="couple-map-foot">
         <span class="couple-map-legend"><span class="legend-dot groom"></span> Mladoženja</span>
         <span class="couple-map-legend"><span class="legend-dot bride"></span> Mlada</span>
@@ -961,12 +961,9 @@
     const guestMessage = document.getElementById('guest-message');
     const churchGallery = document.getElementById('churchGallery');
     const salonGallery = document.getElementById('salonGallery');
-    const ownerLogin = document.getElementById('ownerLogin');
-    const ownerPin = document.getElementById('ownerPin');
-    const ownerStatus = document.getElementById('ownerStatus');
 
     let isOwner = false;
-    let activeRole = localStorage.getItem('weddingActiveRole') || null;
+    let activeRole = null; // Web is guest-only; mobile applications publish locations.
 
     function escapeHtml(value){
       return String(value || '').replace(/[&<>'"]/g, char => ({
@@ -1005,16 +1002,6 @@
         ${escapeHtml(item.message || '')}
         <br><small>${new Date(item.created_at).toLocaleString('hr-HR')}</small>
       `;
-
-      const del = document.createElement('button');
-      del.className = 'delete-btn';
-      del.textContent = 'Obriši';
-      del.hidden = !isOwner;
-      del.addEventListener('click', () => deleteItem(item.id, item.file_path, wrapper));
-
-      wrapper.appendChild(media);
-      wrapper.appendChild(meta);
-      wrapper.appendChild(del);
       galleryForPlace(item.place).prepend(wrapper);
     }
 
@@ -1089,19 +1076,6 @@
       document.getElementById('album-gostiju').scrollIntoView({ behavior:'smooth' });
     });
 
-    ownerLogin.addEventListener('click', function(){
-      const pin = ownerPin.value.trim();
-      if(pin === GROOM_PIN){ activeRole='groom'; isOwner=true; }
-      else if(pin === BRIDE_PIN){ activeRole='bride'; isOwner=true; }
-      else { activeRole=null; isOwner=false; }
-      if(isOwner) localStorage.setItem('weddingActiveRole',activeRole);
-      else localStorage.removeItem('weddingActiveRole');
-      ownerStatus.textContent = isOwner ? ('Prijavljen/a: '+(activeRole==='groom'?'Mladoženja':'Mlada')+'.') : 'Pogrešna šifra.';
-      const badge=document.getElementById('roleBadge');
-      if(badge) badge.textContent=isOwner ? (activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada') : '';
-      document.querySelectorAll('.delete-btn').forEach(btn => btn.hidden = !isOwner);
-    });
-
     async function deleteItem(id, filePath, element){
       if(!isOwner) return;
       if(!confirm('Obrisati ovu stavku iz albuma?')) return;
@@ -1152,16 +1126,12 @@
     const liveConnection=document.getElementById('liveConnection');
     const progressFill=document.getElementById('progressFill');
     const progressSteps=Array.from(document.querySelectorAll('.progress-step'));
-    const trackingControls=document.getElementById('trackingControls');
-    const trackingToggle=document.getElementById('trackingToggle');
-    const trackingStatus=document.getElementById('trackingStatus');
     const groomPlace=document.getElementById('groomPlace');
     const bridePlace=document.getElementById('bridePlace');
     const groomAge=document.getElementById('groomAge');
     const brideAge=document.getElementById('brideAge');
     const liveMapBtn=document.getElementById('liveMapBtn');
     const etaNote=document.getElementById('etaNote');
-    const roleBadge=document.getElementById('roleBadge');
 
     let watchId=null, wakeLock=null;
     let rows={groom:null,bride:null};
@@ -1294,26 +1264,23 @@
     let lastTrailKey={groom:null,bride:null};
 
     function personDivIcon(role){
-      const groomSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="9" r="5" fill="#fff"/><path d="M7 28c.7-7 3.8-11 9-11s8.3 4 9 11H7z" fill="#fff"/><path d="M12.5 18.5 16 22l3.5-3.5L18 28h-4l-1.5-9.5z" fill="#153d72"/></svg>`;
-      const brideSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="9" r="5" fill="#fff"/><path d="M10 13c1.7 2 3.7 3 6 3s4.3-1 6-3c1 5.2 3.3 10.2 5 15H5c1.7-4.8 4-9.8 5-15z" fill="#fff"/><path d="M11 7c1-4 9-4 10 0-2-1.3-8-1.3-10 0z" fill="#fff"/></svg>`;
-      const svg=role==='groom'?groomSvg:brideSvg;
-      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'">'+svg+'</div>',iconSize:[46,52],iconAnchor:[23,48],popupAnchor:[0,-46]});
+      const src=role==='groom'?'mladozenja.png':'mlada.png';
+      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'"><img src="'+src+'" alt=""></div>',iconSize:[52,58],iconAnchor:[26,52],popupAnchor:[0,-48]});
     }
     function placeDivIcon(type){
-      const churchSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3v7M12.5 6.5h7"/><path d="M7 14l9-7 9 7v14H7z"/><path d="M13 28v-8h6v8"/></svg>`;
-      const salonSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 9v17M24 9v17"/><path d="M6 9h4M22 9h4"/><path d="M10 16h12"/><path d="M12 16c0 5 1.8 8 4 8s4-3 4-8"/><path d="M16 24v4"/></svg>`;
-      const svg=type==='church'?churchSvg:salonSvg;
+      const src=type==='church'?'crkva.png':'svadbenisalon.png';
+      const label=type==='church'?'Crkva sv. Petra':'Svadbeni salon Otok';
       return L.divIcon({
         className:'couple-map-icon',
-        html:'<div class="place-pin">'+svg+'</div>',
-        iconSize:[42,48],iconAnchor:[21,44],popupAnchor:[0,-42]
+        html:'<div class="place-photo-pin"><img src="'+src+'" alt="'+label+'"></div>',
+        iconSize:[56,56],iconAnchor:[28,28],popupAnchor:[0,-31]
       });
     }
     function initCoupleMap(){
       if(coupleMap) return;
       coupleMap=L.map('coupleMap',{zoomControl:false,attributionControl:false,preferCanvas:true}).setView([43.42,17.20],10);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
-        subdomains:'abcd',maxZoom:20
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_4hmn_1_2be252b58326f03c19290509',{
+        subdomains:'abcd',maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; CARTO'
       }).addTo(coupleMap);
       groomTrailLine=L.polyline([],{color:'#2f6fbe',weight:4,opacity:.72}).addTo(coupleMap);
       brideTrailLine=L.polyline([],{color:'#cf4f83',weight:4,opacity:.72,dashArray:'7 7'}).addTo(coupleMap);
@@ -1625,50 +1592,6 @@
       };
     }
 
-    async function publishPosition(position){
-      if(!activeRole) return;
-      const f=filteredFix(position.coords);
-      if(!f){ trackingStatus.textContent='GPS se stabilizira prije slanja lokacije…'; return; }
-      const phase=updatePhaseFromFix(f.lat,f.lng);
-      const row={id:ROLE_ROW[activeRole],lat:f.lat,lng:f.lng,accuracy:f.accuracy,speed:f.speed,heading:f.heading,phase,updated_at:new Date().toISOString()};
-      rows[activeRole]=row; renderCouple();
-      const {error}=await supabaseClient.from('wedding_live_location').upsert(row,{onConflict:'id'});
-      if(error){console.error(error);trackingStatus.textContent='GPS radi, ali slanje u Supabase nije uspjelo. Za dvije lokacije treba SQL pravilo za id 1 i 2.';}
-      else {
-        try{localStorage.setItem('weddingLastFix_'+activeRole,JSON.stringify(row));}catch(e){}
-        trackingStatus.textContent='Lokacija se šalje kao '+(activeRole==='groom'?'mladoženja':'mlada')+'. Točnost: ±'+Math.round(f.accuracy)+' m.';
-      }
-    }
-
-    async function requestWakeLock(){
-      if(!isTrackingWanted()||document.visibilityState!=='visible'||!('wakeLock'in navigator)) return;
-      try{wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null);}catch(e){}
-    }
-    function syncTrackingUi(){
-      const on=isTrackingWanted()||watchId!==null;
-      trackingToggle.textContent=on?'Zaustavi praćenje moje lokacije':'Ponovno pokreni praćenje';
-      trackingToggle.classList.toggle('is-on',on);
-    }
-    function startTracking({remember=true}={}){
-      if(!activeRole){trackingStatus.textContent='Najprije se prijavi vlastitom šifrom.';return;}
-      if(!navigator.geolocation){trackingStatus.textContent='Ovaj preglednik ne podržava geolokaciju.';return;}
-      if(remember)setTrackingWanted(true); syncTrackingUi(); if(watchId!==null)return;
-      trackingStatus.textContent='Dohvaćam i stabiliziram GPS lokaciju…';
-      watchId=navigator.geolocation.watchPosition(publishPosition,err=>{
-        trackingStatus.textContent=err.code===1?'Pristup lokaciji nije dopušten. Omogući lokaciju za ovu stranicu.':'GPS trenutačno nema stabilnu lokaciju: '+err.message;
-      },{enableHighAccuracy:true,maximumAge:3000,timeout:20000});
-      requestWakeLock();
-    }
-    function stopTracking({remember=true}={}){
-      if(watchId!==null)navigator.geolocation.clearWatch(watchId); watchId=null; ownSamples=[];
-      if(remember)setTrackingWanted(false); if(wakeLock){try{wakeLock.release();}catch(e){}wakeLock=null;}
-      syncTrackingUi(); trackingStatus.textContent='Praćenje je isključeno.';
-    }
-    function resumeTrackingIfWanted(){if(activeRole&&isTrackingWanted())startTracking({remember:false});}
-
-    trackingToggle.addEventListener('click',()=>{if(!isOwner)return;if(isTrackingWanted()||watchId!==null)stopTracking();else startTracking();});
-    window.addEventListener('pageshow',resumeTrackingIfWanted); window.addEventListener('focus',resumeTrackingIfWanted); window.addEventListener('online',resumeTrackingIfWanted);
-    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){resumeTrackingIfWanted();requestWakeLock();}});
 
     async function fetchLiveLocation(){
       const {data,error}=await supabaseClient.from('wedding_live_location').select('*').in('id',[1,2]);
@@ -1677,24 +1600,14 @@
       renderCouple();
     }
 
-    ownerLogin.addEventListener('click',function(){
-      trackingControls.style.display=isOwner?'block':'none'; syncTrackingUi();
-      if(isOwner){ roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada'; setTrackingWanted(true); startTracking({remember:false}); }
-    });
-
     /* Pozivnica je skrivena iza četvrte navigacijske ikone. */
     const invitationNav=document.getElementById('invitationNav'), invitationClose=document.getElementById('invitationClose'), coverEl=document.getElementById('pocetak');
     function openInvitation(){coverEl.classList.remove('invitation-hidden');coverEl.classList.add('invitation-open');coverEl.scrollIntoView({behavior:'smooth',block:'start'});}
     function closeInvitation(){coverEl.classList.add('invitation-hidden');coverEl.classList.remove('invitation-open');document.getElementById('svatovi-uzivo').scrollIntoView({behavior:'smooth',block:'start'});}
     invitationNav.addEventListener('click',openInvitation); invitationClose.addEventListener('click',closeInvitation);
 
-    // Ako je uređaj već bio prijavljen kao mladoženja ili mlada, pamti ulogu.
-    if(activeRole==='groom'||activeRole==='bride'){
-      isOwner=true; trackingControls.style.display='block'; setTrackingWanted(true);
-      ownerStatus.textContent='Prijavljen/a: '+(activeRole==='groom'?'Mladoženja':'Mlada')+'.';
-      roleBadge.textContent=activeRole==='groom'?'🤵 Mladoženja':'👰 Mlada';
-    }
-    syncTrackingUi(); resumeTrackingIfWanted(); fetchLiveLocation(); setInterval(fetchLiveLocation,10000);
+    // Prikaz javnih lokacija; slanje GPS-a radi samo mobilna aplikacija.
+    fetchLiveLocation(); setInterval(fetchLiveLocation,10000);
 
 
     loadAlbum();
