@@ -613,10 +613,10 @@
     .eta-adjusted.late{color:#a32626;}
     .eta-adjusted.early{color:#16753b;}
     .progress-shell{ position:relative; margin-top:8px; padding:22px 3px 0; }
-    .progress-cursor{position:absolute;top:22px;left:7%;width:22px;height:22px;border-radius:50%;background:#4979c7;border:3px solid #fff;box-shadow:0 0 0 3px rgba(73,121,199,.20);z-index:4;transform:translateX(-50%);transition:left 8s linear;pointer-events:none;}
+    .progress-cursor{position:absolute;top:22px;left:12.5%;width:22px;height:22px;border-radius:50%;background:#4979c7;border:3px solid #fff;box-shadow:0 0 0 3px rgba(73,121,199,.20);z-index:4;transform:translateX(-50%);transition:left 8s linear;pointer-events:none;}
     .progress-shell.before-start .progress-cursor{display:none;}
     .progress-shell.before-start .progress-fill{width:0%!important;}
-    .progress-track{ position:absolute; top:31px; left:7%; right:7%; height:4px; background:#ddd5ca; border-radius:999px; overflow:hidden; }
+    .progress-track{ position:absolute; top:31px; left:12.5%; right:12.5%; height:4px; background:#ddd5ca; border-radius:999px; overflow:hidden; }
     .progress-fill{ height:100%; width:0%; background:#111; border-radius:999px; transition:width 8s linear; }
     .progress-steps{ position:relative; display:grid; grid-template-columns:repeat(4,1fr); gap:5px; z-index:2; }
     .progress-step{ text-align:center; min-width:0; }
@@ -1589,7 +1589,7 @@
       return today>WEDDING_DATE || (today===WEDDING_DATE && (now.getHours()>12 || (now.getHours()===12)));
     }
     function progressPercent(row){
-      if(!weddingStarted() || !row || !isFresh(row,180)) return 0;
+      if(!weddingStarted() || !row) return 0;
       const phase=displayPhase(row);
       const segments=100/3;
       if(phase===0) return 0;
@@ -1604,16 +1604,17 @@
     function updateWeddingProgress(){
       const groom=rows.groom;
       const started=weddingStarted();
-      const hasGroom=started && isFresh(groom,180);
-      const percentage=hasGroom?progressPercent(groom):0;
-      progressShell.classList.toggle('before-start',!started || !hasGroom);
+      // Nakon 12:00 na dan svadbe pokazivač ostaje vidljiv čak i bez GPS signala.
+      // Ako je GPS nedostupan, ostaje na posljednjoj poznatoj fazi/lokaciji.
+      const percentage=started ? (groom ? progressPercent(groom) : Math.max(0,Math.min(100,(routeState.phase||0)*100/3))) : 0;
+      progressShell.classList.toggle('before-start',!started);
       progressFill.style.width=percentage.toFixed(2)+'%';
-      // Traka ima rubove na 7% i 93% širine.
-      progressCursor.style.left=`calc(7% + ${percentage.toFixed(2)}% * 0.86)`;
-      const phase=hasGroom?displayPhase(groom): -1;
+      // Središta četiriju oznaka nalaze se na 12.5%, 37.5%, 62.5% i 87.5%.
+      progressCursor.style.left=`calc(12.5% + ${percentage.toFixed(2)}% * 0.75)`;
+      const phase=started ? (groom ? displayPhase(groom) : (routeState.phase||0)) : -1;
       progressSteps.forEach((el,i)=>{
-        el.classList.toggle('done',hasGroom && i<phase);
-        el.classList.toggle('active',hasGroom && i===phase);
+        el.classList.toggle('done',started && i<phase);
+        el.classList.toggle('active',started && i===phase);
       });
     }
 
