@@ -1165,7 +1165,15 @@
     const albumLightboxLike = document.getElementById('albumLightboxLike');
     let previousAlbumFocus = null;
     function itemsForPlace(place){return albumItems.filter(item=>item.place===place);}
-    function albumCountLabel(n){return n===1?'1 fotografija / video':`${n} fotografija / videa`;}
+    function albumCountLabel(n){
+      const lastTwo = n % 100;
+      const last = n % 10;
+      const form = lastTwo >= 11 && lastTwo <= 14 ? 'fotografija / videa'
+        : last === 1 ? 'fotografija / video'
+        : last >= 2 && last <= 4 ? 'fotografije / videa'
+        : 'fotografija / videa';
+      return `${n} ${form}`;
+    }
     const albumCategoryView=document.getElementById('albumCategoryView');
     const albumCategoryGrid=document.getElementById('albumCategoryGrid');
     const albumCategoryEmpty=document.getElementById('albumCategoryEmpty');
