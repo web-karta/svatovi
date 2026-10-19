@@ -363,6 +363,15 @@
       cursor:pointer;
     }
 
+    .submit-btn:disabled{opacity:.7;cursor:wait}
+    .upload-progress-panel{margin-top:14px;padding:16px;border:1px solid var(--line);border-radius:18px;font-family:'Libre Baskerville',Georgia,serif}
+    .upload-progress-track{height:10px;background:#e9e4dd;border-radius:999px;overflow:hidden;margin:10px 0}
+    .upload-progress-fill{height:100%;width:0;background:#4787c9;border-radius:999px;transition:width .3s ease}
+    .upload-progress-details{font-size:12px;color:var(--muted);line-height:1.7}
+    .upload-progress-panel[data-status="success"] .upload-progress-fill{background:#29834a}
+    .upload-progress-panel[data-status="error"] .upload-progress-fill{background:#b84646}
+    .submit-btn.upload-success{background:#277745}
+
     .guest-albums{
       margin-top:36px;
       display:grid;
@@ -434,6 +443,7 @@
     .album-lightbox .album-like.liked{color:#cf3045}
     .album-lightbox-close,.album-lightbox-nav{position:absolute;z-index:2;background:#ffffff22;border:1px solid #ffffff55;color:white;border-radius:50%;cursor:pointer;font-family:Arial,sans-serif}
     .album-lightbox-close{right:16px;top:13px;width:42px;height:42px;font-size:28px}
+    .album-lightbox-position{position:absolute;z-index:2;top:13px;right:70px;height:42px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Libre Baskerville',serif;font-size:13px;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
     .album-lightbox-nav{top:48%;width:42px;height:50px;font-size:35px}
     .album-lightbox-prev{left:8px}.album-lightbox-next{right:8px}
     .album-lightbox-nav:disabled{opacity:.2;cursor:default}
@@ -964,7 +974,12 @@
             </div>
           </div>
 
-          <button type="submit" class="submit-btn">Pošalji u album gostiju</button>
+          <button type="submit" class="submit-btn" id="album-submit-btn">Pošalji u album gostiju</button>
+          <div class="upload-progress-panel" id="album-upload-progress" role="status" aria-live="polite" hidden>
+            <strong id="album-upload-label">Priprema prijenosa...</strong>
+            <div class="upload-progress-track" role="progressbar" id="album-upload-bar" aria-label="Napredak prijenosa" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="upload-progress-fill" id="album-upload-fill"></div></div>
+            <div class="upload-progress-details" id="album-upload-details"></div>
+          </div>
         </form>
 <div class="guest-albums" id="album-gostiju">
           <div class="album-section">
@@ -995,6 +1010,7 @@
   </div>
 
   <div class="album-lightbox" id="albumLightbox" hidden role="dialog" aria-modal="true" aria-label="Pregled fotografija i videozapisa" tabindex="-1">
+    <span class="album-lightbox-position" id="albumLightboxPosition" aria-live="polite" aria-label="Redni broj fotografije"></span>
     <button type="button" class="album-lightbox-close" aria-label="Zatvori pregled">×</button>
     <button type="button" class="album-lightbox-nav album-lightbox-prev" aria-label="Prethodna fotografija">‹</button>
     <div class="album-lightbox-center"><div class="album-lightbox-media" id="albumLightboxMedia"></div><div class="album-lightbox-info"><div id="albumLightboxDetails"></div><div id="albumLightboxLike"></div></div></div>
@@ -1137,6 +1153,7 @@
     let activeAlbumIndex = 0;
     const albumLightbox = document.getElementById('albumLightbox');
     const albumLightboxMedia = document.getElementById('albumLightboxMedia');
+    const albumLightboxPosition = document.getElementById('albumLightboxPosition');
     const albumLightboxDetails = document.getElementById('albumLightboxDetails');
     const albumLightboxLike = document.getElementById('albumLightboxLike');
     let previousAlbumFocus = null;
@@ -1149,6 +1166,7 @@
     let currentCategoryHome=null;
     let categoryPreviousFocus=null;
     let categoryHistoryActive=false;
+    let lightboxHistoryActive=false;
     function updateCategoryView(){
       if(albumCategoryView.hidden)return;
       const count=itemsForPlace(activeAlbumPlace).length;
@@ -1174,7 +1192,7 @@
     }
     function closeAlbumCategory(){
       if(albumCategoryView.hidden)return;
-      if(!albumLightbox.hidden)closeAlbumItem();
+      if(!albumLightbox.hidden)closeAlbumItem(false);
       if(currentCategoryGallery&&currentCategoryHome){
         currentCategoryHome.appendChild(currentCategoryGallery);
         currentCategoryGallery.hidden=true;
@@ -1193,6 +1211,12 @@
       else{closeAlbumCategory();}
     }
     window.addEventListener('popstate',()=>{
+      // Androidov Natrag: fotografija -> mreža albuma -> glavna stranica.
+      if(!albumLightbox.hidden){
+        lightboxHistoryActive=false;
+        closeAlbumItem(false);
+        return;
+      }
       if(!albumCategoryView.hidden){
         categoryHistoryActive=false;
         closeAlbumCategory();
@@ -1220,6 +1244,8 @@
       activeAlbumIndex=Math.max(0,Math.min(index,list.length-1));
       previousAlbumFocus=document.activeElement;
       albumLightbox.hidden=false;
+      history.pushState({svatoviAlbumPhoto:true}, '', location.href);
+      lightboxHistoryActive=true;
       document.body.style.overflow='hidden';
       showAlbumItem();
       albumLightbox.focus();
@@ -1230,6 +1256,7 @@
       if(!list.length){closeAlbumItem();return;}
       activeAlbumIndex=Math.min(activeAlbumIndex,list.length-1);
       const item=list[activeAlbumIndex];
+      albumLightboxPosition.textContent=`${activeAlbumIndex+1} / ${list.length}`;
       albumLightboxMedia.replaceChildren();
       const isVideo=(item.file_type||'').startsWith('video/');
       const media=document.createElement(isVideo?'video':'img');
@@ -1246,7 +1273,13 @@
       document.querySelector('.album-lightbox-prev').disabled=activeAlbumIndex===0;
       document.querySelector('.album-lightbox-next').disabled=activeAlbumIndex===list.length-1;
     }
-    function closeAlbumItem(){
+    function closeAlbumItem(updateHistory=true){
+      if(albumLightbox.hidden)return;
+      if(updateHistory && lightboxHistoryActive){
+        history.back();
+        return;
+      }
+      lightboxHistoryActive=false;
       albumLightbox.hidden=true;
       albumLightboxMedia.replaceChildren();
       if(albumCategoryView.hidden)document.body.style.overflow='';
@@ -1318,64 +1351,92 @@
 
     guestPlace.addEventListener('change', ()=>guestPlace.setCustomValidity(''));
 
+    const albumSubmitButton=document.getElementById('album-submit-btn');
+    const albumUploadPanel=document.getElementById('album-upload-progress');
+    const albumUploadLabel=document.getElementById('album-upload-label');
+    const albumUploadBar=document.getElementById('album-upload-bar');
+    const albumUploadFill=document.getElementById('album-upload-fill');
+    const albumUploadDetails=document.getElementById('album-upload-details');
+    let albumUploadInProgress=false;
+    let albumSuccessResetTimer=null;
+    function setAlbumProgress(completed,total,elapsedSeconds,failures,activeName=''){
+      const percentage=total?Math.round(completed/total*100):0;
+      albumUploadFill.style.width=percentage+'%';
+      albumUploadBar.setAttribute('aria-valuenow',String(percentage));
+      albumUploadLabel.textContent=activeName ? 'Prenosi se: '+activeName : `Obrađeno ${completed} od ${total} datoteka (${percentage} %)`;
+      albumUploadDetails.textContent=`Obrađeno ${completed}/${total} · Proteklo ${elapsedSeconds} s`+(failures?` · Neuspjelo: ${failures}`:'');
+    }
     uploadForm.addEventListener('submit', async function(e){
       e.preventDefault();
-
-      const files = Array.from(guestFiles.files);
-      if(!files.length) return;
-
-      const name = guestName.value.trim();
-      const place = guestPlace.value;
-      if(!['Crkva', 'Svadbeni salon'].includes(place)){
+      if(albumUploadInProgress)return;
+      const files=Array.from(guestFiles.files);
+      if(!files.length)return;
+      const name=guestName.value.trim();
+      const place=guestPlace.value;
+      if(!['Crkva','Svadbeni salon'].includes(place)){
         guestPlace.setCustomValidity('Odaberite Crkva ili Svadbeni salon.');
         guestPlace.reportValidity();
         return;
       }
       guestPlace.setCustomValidity('');
-      const message = guestMessage.value.trim();
-
-      for(const file of files){
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const filePath = `${place}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-
-        const { error: uploadError } = await supabaseClient.storage
-          .from(BUCKET_NAME)
-          .upload(filePath, file, { cacheControl: '3600', upsert: false });
-
-        if(uploadError){
-          alert('Greška pri spremanju datoteke.');
-          console.error(uploadError);
-          continue;
+      const message=guestMessage.value.trim();
+      clearTimeout(albumSuccessResetTimer);
+      albumUploadInProgress=true;
+      albumSubmitButton.disabled=true;
+      albumSubmitButton.classList.remove('upload-success');
+      albumSubmitButton.textContent='Prijenos u tijeku...';
+      albumUploadPanel.hidden=false;
+      albumUploadPanel.dataset.status='uploading';
+      const startTime=Date.now();
+      let completed=0,failures=0;
+      const elapsed=()=>Math.floor((Date.now()-startTime)/1000);
+      setAlbumProgress(0,files.length,0,0);
+      const clock=setInterval(()=>setAlbumProgress(completed,files.length,elapsed(),failures,completed<files.length?'Datoteka '+(completed+1)+'/'+files.length:''),1000);
+      try{
+        for(const file of files){
+          try{
+            const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+            const filePath=`${place}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+            const {error:uploadError}=await supabaseClient.storage.from(BUCKET_NAME)
+              .upload(filePath,file,{cacheControl:'3600',upsert:false});
+            if(uploadError)throw uploadError;
+            const {data:publicData}=supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+            const {error:insertError}=await supabaseClient.from('album_items').insert({
+              guest_name:name,place,message,file_path:filePath,
+              file_url:publicData.publicUrl,file_type:file.type
+            });
+            if(insertError)throw insertError;
+          }catch(err){
+            failures++;
+            console.error('Pogreška pri prijenosu u album:',err);
+          }finally{
+            completed++;
+            setAlbumProgress(completed,files.length,elapsed(),failures);
+          }
         }
-
-        const { data: publicData } = supabaseClient.storage
-          .from(BUCKET_NAME)
-          .getPublicUrl(filePath);
-
-        const { data: inserted, error: insertError } = await supabaseClient
-          .from('album_items')
-          .insert({
-            guest_name: name,
-            place,
-            message,
-            file_path: filePath,
-            file_url: publicData.publicUrl,
-            file_type: file.type
-          })
-          .select()
-          .single();
-
-        if(insertError){
-          alert('Datoteka je spremljena, ali zapis nije dodan u album.');
-          console.error(insertError);
-          continue;
+        try{await refreshAlbum();}catch(err){console.error('Osvježavanje albuma:',err);}
+        if(failures===0){
+          albumUploadPanel.dataset.status='success';
+          albumUploadLabel.textContent='Sve datoteke uspješno prenesene.';
+          albumSubmitButton.textContent='✓ Preneseno u svadbeni album';
+          albumSubmitButton.classList.add('upload-success');
+          uploadForm.reset();
+          filePickerStatus.textContent='Nijedna datoteka nije odabrana.';
+          albumSuccessResetTimer=setTimeout(()=>{
+            albumSubmitButton.textContent='Pošalji u album gostiju';
+            albumSubmitButton.classList.remove('upload-success');
+          },9000);
+        }else{
+          albumUploadPanel.dataset.status='error';
+          albumUploadLabel.textContent=`Prijenos djelomično/neuspješan: ${failures} od ${files.length} datoteka nije dodano u album.`;
+          albumSubmitButton.textContent='Pokušaj ponovno';
+          // Ne resetiraj obrazac: korisnik može odabrati datoteke za ponovni pokušaj.
         }
-
-        await refreshAlbum();
+      }finally{
+        clearInterval(clock);
+        albumUploadInProgress=false;
+        albumSubmitButton.disabled=false;
       }
-
-      uploadForm.reset();
-      document.getElementById('album-gostiju').scrollIntoView({ behavior:'smooth' });
     });
 
     async function deleteItem(id, filePath, element){
@@ -1441,9 +1502,13 @@
     let rows={groom:null,bride:null};
     let ownSamples=[];
     let etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase:null };
-    let currentPhase=Number(localStorage.getItem('weddingLivePhase')||0);
-    let hasReachedBride=localStorage.getItem('weddingReachedBride')==='1';
-    let hasReachedChurch=localStorage.getItem('weddingReachedChurch')==='1';
+    // Stanje faze vodi se prema GPS-u mladoženje; pohranjuje se po pregledniku.
+    const PHASE_STORAGE='weddingRouteState_2029_09_29_v2';
+    let routeState={phase:0,seenStart:false,seenBride:false,seenChurch:false,seenHotel:false,
+      startExit:0,brideExit:0,churchExit:0};
+    try { routeState={...routeState,...JSON.parse(localStorage.getItem(PHASE_STORAGE)||'{}')}; } catch(e){}
+    let lastPhaseFix='';
+    function saveRouteState(){localStorage.setItem(PHASE_STORAGE,JSON.stringify(routeState));}
 
     function trackingKey(){ return 'weddingTrackingEnabled_'+(activeRole||'none'); }
     function isTrackingWanted(){ return activeRole && localStorage.getItem(trackingKey())==='1'; }
@@ -1477,21 +1542,43 @@
       return LIVE_POINTS[3];
     }
 
-    function updatePhaseFromFix(lat,lng){
-      const dStart=distanceM(lat,lng,LIVE_POINTS[0].lat,LIVE_POINTS[0].lng);
-      const dBride=distanceM(lat,lng,LIVE_POINTS[1].lat,LIVE_POINTS[1].lng);
-      const dChurch=distanceM(lat,lng,LIVE_POINTS[2].lat,LIVE_POINTS[2].lng);
-      const dHotel=distanceM(lat,lng,LIVE_POINTS[3].lat,LIVE_POINTS[3].lng);
-      if(dHotel<LIVE_POINTS[3].radius) currentPhase=3;
-      else if(hasReachedChurch&&dChurch>1200) currentPhase=Math.max(currentPhase,3);
-      else if(dChurch<LIVE_POINTS[2].radius){hasReachedChurch=true;currentPhase=Math.max(currentPhase,2);}
-      else if(hasReachedBride&&dBride>1300) currentPhase=Math.max(currentPhase,2);
-      else if(dBride<LIVE_POINTS[1].radius){hasReachedBride=true;currentPhase=Math.max(currentPhase,1);}
-      else if(dStart>2300) currentPhase=Math.max(currentPhase,1);
-      localStorage.setItem('weddingLivePhase',String(currentPhase));
-      localStorage.setItem('weddingReachedBride',hasReachedBride?'1':'0');
-      localStorage.setItem('weddingReachedChurch',hasReachedChurch?'1':'0');
-      return currentPhase;
+    // GPS točnost mora biti zadovoljavajuća; tri uzastopna očitanja
+    // potvrđuju napuštanje lokacije. Različiti pragovi sprečavaju titranje.
+    function updatePhaseFromFix(lat,lng,accuracy=999,updatedAt=''){
+      if(!weddingStarted() || accuracy>80) return routeState.phase;
+      const key=String(updatedAt||'')+':'+lat.toFixed(6)+':'+lng.toFixed(6);
+      if(key===lastPhaseFix) return routeState.phase;
+      lastPhaseFix=key;
+      const ds=LIVE_POINTS.map(p=>distanceM(lat,lng,p.lat,p.lng));
+      if(ds[0]<=100) routeState.seenStart=true;
+      if(routeState.phase===0 && routeState.seenStart){
+        routeState.startExit=ds[0]>=150?routeState.startExit+1:0;
+        if(routeState.startExit>=3) routeState.phase=1;
+      }
+      if(routeState.phase===1){
+        if(ds[1]<=100) routeState.seenBride=true;
+        if(routeState.seenBride){
+          routeState.brideExit=ds[1]>=150?routeState.brideExit+1:0;
+          if(routeState.brideExit>=3) routeState.phase=2;
+        }
+      }
+      if(routeState.phase===2){
+        if(ds[2]<=100) routeState.seenChurch=true;
+        if(routeState.seenChurch){
+          routeState.churchExit=ds[2]>=150?routeState.churchExit+1:0;
+          if(routeState.churchExit>=3) routeState.phase=3;
+        }
+      }
+      if(routeState.phase===3 && ds[3]<=100) routeState.seenHotel=true;
+      saveRouteState();
+      return routeState.phase;
+    }
+    function displayPhase(row){
+      if(!weddingStarted()) return 0;
+      if(isFresh(rows.groom,180)){
+        updatePhaseFromFix(Number(rows.groom.lat),Number(rows.groom.lng),Number(rows.groom.accuracy)||999,rows.groom.updated_at);
+      }
+      return routeState.phase;
     }
 
     // Napredak se temelji isključivo na mladoženjinoj svježoj GPS lokaciji.
@@ -1503,7 +1590,7 @@
     }
     function progressPercent(row){
       if(!weddingStarted() || !row || !isFresh(row,180)) return 0;
-      const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
+      const phase=displayPhase(row);
       const segments=100/3;
       if(phase===0) return 0;
       const target=targetForPhase(phase);
@@ -1523,7 +1610,7 @@
       progressFill.style.width=percentage.toFixed(2)+'%';
       // Traka ima rubove na 7% i 93% širine.
       progressCursor.style.left=`calc(7% + ${percentage.toFixed(2)}% * 0.86)`;
-      const phase=hasGroom?Math.max(0,Math.min(3,Number(groom.phase)||0)): -1;
+      const phase=hasGroom?displayPhase(groom): -1;
       progressSteps.forEach((el,i)=>{
         el.classList.toggle('done',hasGroom && i<phase);
         el.classList.toggle('active',hasGroom && i===phase);
@@ -1533,7 +1620,7 @@
     /* Stabilna ETA: ne vjeruje jednom GPS očitanju ni trenutačnoj brzini.
        Procjena se mijenja tek nakon dva uzastopna slična izračuna i najviše 1 min svakih 20 s. */
     function rawEtaMinutes(row){
-      const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
+      const phase=displayPhase(row);
       const target=targetForPhase(phase);
       const meters=distanceM(row.lat,row.lng,target.lat,target.lng);
       if(meters<=target.radius) return 0;
@@ -1549,7 +1636,7 @@
     function stableEta(row){
       // Prije početka svadbenog dana ne računaj GPS ETA za budući događaj.
       if(!weddingStarted()) return {text:LIVE_POINTS[0].planned,delay:''};
-      const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
+      const phase=displayPhase(row);
       const target=targetForPhase(phase);
       if(etaState.phase!==phase){ etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase }; }
       if(distanceM(row.lat,row.lng,target.lat,target.lng)<=target.radius) return {text:'Stigli na odredište',delay:''};
@@ -1597,7 +1684,7 @@
 
     function personDivIcon(role){
       const src=role==='groom'?'mladozenja.png':'mlada.png';
-      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'"><img src="'+src+'" alt=""></div>',iconSize:[52,58],iconAnchor:[26,52],popupAnchor:[0,-48]});
+      return L.divIcon({className:'couple-map-icon',html:'<div class="person-pin '+role+'"><img src="'+src+'" alt=""></div>',iconSize:[52,58],iconAnchor:[26,52],popupAnchor:[0,-52]});
     }
     function placeDivIcon(type){
       const src=type==='church'?'crkva.png':'svadbenisalon.png';
@@ -1668,14 +1755,21 @@
     }
     // Izmicanje oznaka u pikselima na SVAKOM zoomu. Mladozenja ide lijevo,
     // mladenka desno; marker i njegova stvarna GPS koordinata se ne premjestaju.
+    function syncCouplePopup(marker,offsetX){
+      if(!coupleMap || !marker || !marker.isPopupOpen()) return;
+      const point=coupleMap.latLngToLayerPoint(marker.getLatLng());
+      const visualPosition=coupleMap.layerPointToLatLng(L.point(point.x+offsetX,point.y));
+      const popup=marker.getPopup();
+      if(popup) popup.setLatLng(visualPosition);
+    }
     function separateCoupleIcons(){
       if(!coupleMap || !groomMarker || !brideMarker) return;
       const g=coupleMap.latLngToLayerPoint(groomMarker.getLatLng());
       const b=coupleMap.latLngToLayerPoint(brideMarker.getLatLng());
       const dx=b.x-g.x, dy=b.y-g.y;
-      // Dvije oznake promjera 52 px + 12 px razmaka. Obje se smjestaju
+      // Dvije oznake promjera 52 px + 10 px razmaka. Obje se smjestaju
       // lijevo/desno od zajednickog sredista kad su blizu, bez preklapanja.
-      const minDistance=66;
+      const minDistance=62; // 52 px oznaka + 10 px slobodnog razmaka
       const neededX=Math.sqrt(Math.max(0,minDistance*minDistance-dy*dy));
       const close=Math.abs(dx)<neededX;
       const midpoint=(g.x+b.x)/2;
@@ -1685,6 +1779,10 @@
       const brideIcon=brideMarker.getElement()?.querySelector('.person-pin');
       if(groomIcon)groomIcon.style.setProperty('--couple-offset-x',(groomTarget-g.x).toFixed(1)+'px');
       if(brideIcon)brideIcon.style.setProperty('--couple-offset-x',(brideTarget-b.x).toFixed(1)+'px');
+      // Otvoreni popup prati VIZUALNI pomak svoje oznake, a ne samo GPS koordinatu.
+      // Leafletov popupAnchor ostaje iznad kruzne ikone.
+      syncCouplePopup(groomMarker,groomTarget-g.x);
+      syncCouplePopup(brideMarker,brideTarget-b.x);
     }
     function updateCoupleMap(){
       if(typeof L==='undefined') return;
@@ -1692,12 +1790,12 @@
       if(!coupleMap) return;
       if(rows.groom){
         const ll=[rows.groom.lat,rows.groom.lng];
-        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup(popupPersonHtml('groom')).on('popupopen',()=>updatePersonPopupPlace('groom'));
+        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup(popupPersonHtml('groom')).on('popupopen',()=>{updatePersonPopupPlace('groom');separateCoupleIcons();});
         else { groomMarker.setLatLng(ll); if(groomMarker.isPopupOpen()) groomMarker.setPopupContent(popupPersonHtml('groom')); }
       }
       if(rows.bride){
         const ll=[rows.bride.lat,rows.bride.lng];
-        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup(popupPersonHtml('bride')).on('popupopen',()=>updatePersonPopupPlace('bride'));
+        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup(popupPersonHtml('bride')).on('popupopen',()=>{updatePersonPopupPlace('bride');separateCoupleIcons();});
         else { brideMarker.setLatLng(ll); if(brideMarker.isPopupOpen()) brideMarker.setPopupContent(popupPersonHtml('bride')); }
       }
       separateCoupleIcons();
@@ -1945,11 +2043,12 @@
       if(!ref){
         livePhase.textContent='ČEKANJE POČETKA PRAĆENJA'; livePlace.textContent='Nema aktivne lokacije'; liveEta.textContent='—'; liveDelay.textContent=''; liveDelay.className='delay'; updateWeddingProgress(); return;
       }
-      const phase=weddingStarted()?Math.max(0,Math.min(3,Number(ref.phase)||0)):0;
-      livePhase.textContent=weddingStarted()?PHASE_LABELS[phase]:'ČEKANJE POČETKA SVADBE';
+      const phase=weddingStarted()?displayPhase(ref):0;
+      livePhase.textContent=weddingStarted()?(phase===0 && routeState.seenStart?'SKUP KOD MLADOŽENJE U TIJEKU':PHASE_LABELS[phase]):'ČEKANJE POČETKA SVADBE';
       const gFresh=isFresh(rows.groom,180), bFresh=isFresh(rows.bride,180);
       livePlace.textContent=gFresh?'Mladoženja je referentna lokacija':(bFresh?'Mlada je trenutačno referentna lokacija':'Posljednja poznata lokacija');
-      const eta=stableEta(ref);
+      const atStart=phase===0 && routeState.seenStart && new Date().getHours()>=13;
+      const eta=atStart?{text:'Skup u tijeku',delay:''}:stableEta(ref);
       // Razlika od najmanje jedne minute: prekriži planirano i istakni novu procjenu.
       liveEta.className='';
       liveDelay.className='delay';
@@ -1964,7 +2063,7 @@
         liveEta.textContent=eta.text;
         liveDelay.textContent='';
       }
-      etaNote.textContent=!weddingStarted()?'Položaji mladenaca bit će dostupni na dan vjenčanja od 12:00 sati.':(gFresh?'Procjena prema mladoženji. ':bFresh?'Procjena prema mladi. ':'Posljednja poznata lokacija. ')+
+      etaNote.textContent=atStart?'Prijelaz na skup kod mladenke slijedi nakon potvrđenog udaljavanja mladoženje od početne lokacije.':!weddingStarted()?'Položaji mladenaca bit će dostupni na dan vjenčanja od 12:00 sati.':(gFresh?'Procjena prema mladoženji. ':bFresh?'Procjena prema mladi. ':'Posljednja poznata lokacija. ')+
         'Vrijeme dolaska može se promijeniti tijekom vožnje.';
       const newest=[rows.groom,rows.bride].filter(Boolean).sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at))[0];
       const ageSec=(Date.now()-new Date(newest.updated_at).getTime())/1000;
