@@ -426,6 +426,8 @@
 
       .card.reverse .card-body{ order:2; }
       .card.reverse img{ order:1; }
+      .card.church-reversed .card-body{ order:1; }
+      .card.church-reversed > img{ order:2; }
       .card-grid > img{height:220px;padding:12px;}
     }
 
@@ -517,10 +519,20 @@
     .live-box small{ display:block; color:var(--muted); margin-bottom:6px; }
     .live-box strong{ font-size:18px; line-height:1.35; }
     .delay{ display:inline-block; margin-top:4px; font-size:13px; font-weight:700; }
-    .delay.late{ color:#9c2d25; }
+    .delay.late{ color:#a32626; }
+    .delay.early{ color:#16753b; }
+    .eta-original{text-decoration:line-through;text-decoration-thickness:2px;}
+    .eta-original.early{color:#16753b;}
+    .eta-original.late{color:#a32626;}
+    .eta-adjusted{display:inline;margin:0 0 0 9px;font-size:18px;font-weight:700;}
+    .eta-adjusted.late{color:#a32626;}
+    .eta-adjusted.early{color:#16753b;}
     .progress-shell{ position:relative; margin-top:8px; padding:22px 3px 0; }
+    .progress-cursor{position:absolute;top:22px;left:7%;width:22px;height:22px;border-radius:50%;background:#4979c7;border:3px solid #fff;box-shadow:0 0 0 3px rgba(73,121,199,.20);z-index:4;transform:translateX(-50%);transition:left 8s linear;pointer-events:none;}
+    .progress-shell.before-start .progress-cursor{display:none;}
+    .progress-shell.before-start .progress-fill{width:0%!important;}
     .progress-track{ position:absolute; top:31px; left:7%; right:7%; height:4px; background:#ddd5ca; border-radius:999px; overflow:hidden; }
-    .progress-fill{ height:100%; width:0%; background:#111; border-radius:999px; transition:width .7s ease; }
+    .progress-fill{ height:100%; width:0%; background:#111; border-radius:999px; transition:width 8s linear; }
     .progress-steps{ position:relative; display:grid; grid-template-columns:repeat(4,1fr); gap:5px; z-index:2; }
     .progress-step{ text-align:center; min-width:0; }
     .progress-marker{ width:22px; height:22px; margin:0 auto 10px; border-radius:50%; border:2px solid #bdb4a8; background:#fff; transition:.25s ease; }
@@ -541,6 +553,7 @@
       .live-summary{ grid-template-columns:1fr; }
       .progress-step span{ font-size:8px; }
       .progress-marker{ width:18px; height:18px; }
+      .progress-cursor{width:18px;height:18px;top:22px;}
       .progress-track{ top:29px; }
       .live-foot{ display:block; }
       .live-foot span{ display:block; margin-top:5px; }
@@ -723,7 +736,7 @@
         <div class="live-summary">
           <div class="live-box">
             <small>Lokacija uživo</small>
-            <strong id="livePlace">Čekanje lokacije mladenaca…</strong>
+            <strong id="livePlace">Čekanje lokacije mladenaca</strong>
             <div class="couple-live">
               <div class="person-live">
                 <div class="person-icon" aria-hidden="true"><img src="mladozenja.png" alt=""></div>
@@ -748,6 +761,7 @@
 
         <div class="progress-shell" aria-label="Napredak svatova">
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="progress-cursor" id="progressCursor" aria-hidden="true"></div>
           <div class="progress-steps" id="progressSteps">
             <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>13:00<br>SKUP KOD MLADOŽENJE</span></div>
             <div class="progress-step" data-step="1"><div class="progress-marker"></div><span>14:45<br>SKUP KOD MLADENKE</span></div>
@@ -758,7 +772,6 @@
 
         <div class="live-foot">
           <span id="liveUpdated">Posljednje ažuriranje: —</span>
-          <span>Sustav očitava lokaciju mladoženje i mlade; mladoženja je referentna lokacija kad je dostupan.</span>
         </div>
       </article>
     </section>
@@ -813,8 +826,7 @@
 
 
     <section class="info" id="crkva">
-      <article class="card card-grid">
-        <img src="crkva.png" alt="Crkva u Cisti Provo">
+      <article class="card card-grid church-reversed">
         <div class="card-body">
           <div class="label">Vjenčanje</div>
           <h2>Crkva sv. Petra, apostola, Cista Provo</h2>
@@ -822,6 +834,7 @@
           <div class="location"><strong>Lokacija:</strong><br>Ulica Svetog Petra 1,<br> Cista Provo</div>
           <button class="map-link shared-map-open" type="button" data-map-target="church">Otvori lokaciju</button>
         </div>
+        <img src="crkva.png" alt="Crkva u Cisti Provo">
       </article>
     </section>
 
@@ -1125,6 +1138,8 @@
     const liveDot=document.getElementById('liveDot');
     const liveConnection=document.getElementById('liveConnection');
     const progressFill=document.getElementById('progressFill');
+    const progressCursor=document.getElementById('progressCursor');
+    const progressShell=document.querySelector('.progress-shell');
     const progressSteps=Array.from(document.querySelectorAll('.progress-step'));
     const groomPlace=document.getElementById('groomPlace');
     const bridePlace=document.getElementById('bridePlace');
@@ -1136,7 +1151,7 @@
     let watchId=null, wakeLock=null;
     let rows={groom:null,bride:null};
     let ownSamples=[];
-    let etaState={ value:null, lastChange:0, candidate:null, candidateCount:0 };
+    let etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase:null };
     let currentPhase=Number(localStorage.getItem('weddingLivePhase')||0);
     let hasReachedBride=localStorage.getItem('weddingReachedBride')==='1';
     let hasReachedChurch=localStorage.getItem('weddingReachedChurch')==='1';
@@ -1167,7 +1182,8 @@
     function isFresh(row,seconds=180){return !!row && Date.now()-new Date(row.updated_at).getTime()<seconds*1000;}
 
     function targetForPhase(phase){
-      if(phase<=1) return LIVE_POINTS[1];
+      if(phase===0) return LIVE_POINTS[0];
+      if(phase===1) return LIVE_POINTS[1];
       if(phase===2) return LIVE_POINTS[2];
       return LIVE_POINTS[3];
     }
@@ -1189,16 +1205,40 @@
       return currentPhase;
     }
 
+    // Napredak se temelji isključivo na mladoženjinoj svježoj GPS lokaciji.
+    // Prije 12:00 na dan vjenčanja (i svih ranijih dana) traka je prazna.
+    function weddingStarted(){
+      const now=new Date();
+      const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+      return today>WEDDING_DATE || (today===WEDDING_DATE && (now.getHours()>12 || (now.getHours()===12)));
+    }
     function progressPercent(row){
-      if(!row) return 0;
+      if(!weddingStarted() || !row || !isFresh(row,180)) return 0;
       const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
-      if(phase===3&&distanceM(row.lat,row.lng,LIVE_POINTS[3].lat,LIVE_POINTS[3].lng)<=LIVE_POINTS[3].radius) return 100;
-      const base=[0,25,50,75][phase],next=[25,50,75,100][phase];
-      if(phase===0) return 5;
-      const target=targetForPhase(phase), prev=phase===1?LIVE_POINTS[0]:phase===2?LIVE_POINTS[1]:LIVE_POINTS[2];
-      const total=Math.max(1,distanceM(prev.lat,prev.lng,target.lat,target.lng));
-      const remain=distanceM(row.lat,row.lng,target.lat,target.lng);
-      return base+(next-base)*Math.max(0,Math.min(1,1-remain/total));
+      const segments=100/3;
+      if(phase===0) return 0;
+      const target=targetForPhase(phase);
+      const previous=phase===1?LIVE_POINTS[0]:phase===2?LIVE_POINTS[1]:LIVE_POINTS[2];
+      const total=Math.max(1,distanceM(previous.lat,previous.lng,target.lat,target.lng));
+      const remaining=distanceM(row.lat,row.lng,target.lat,target.lng);
+      const traveled=Math.max(0,Math.min(1,1-remaining/total));
+      if(phase===3 && remaining<=target.radius) return 100;
+      return Math.min(100,Math.max(0,(phase-1+traveled)*segments));
+    }
+    function updateWeddingProgress(){
+      const groom=rows.groom;
+      const started=weddingStarted();
+      const hasGroom=started && isFresh(groom,180);
+      const percentage=hasGroom?progressPercent(groom):0;
+      progressShell.classList.toggle('before-start',!started || !hasGroom);
+      progressFill.style.width=percentage.toFixed(2)+'%';
+      // Traka ima rubove na 7% i 93% širine.
+      progressCursor.style.left=`calc(7% + ${percentage.toFixed(2)}% * 0.86)`;
+      const phase=hasGroom?Math.max(0,Math.min(3,Number(groom.phase)||0)): -1;
+      progressSteps.forEach((el,i)=>{
+        el.classList.toggle('done',hasGroom && i<phase);
+        el.classList.toggle('active',hasGroom && i===phase);
+      });
     }
 
     /* Stabilna ETA: ne vjeruje jednom GPS očitanju ni trenutačnoj brzini.
@@ -1218,8 +1258,11 @@
       return Math.max(1,Math.min(120,(meters/1000*roadFactor)/speed*60));
     }
     function stableEta(row){
+      // Prije početka svadbenog dana ne računaj GPS ETA za budući događaj.
+      if(!weddingStarted()) return {text:LIVE_POINTS[0].planned,delay:''};
       const phase=Math.max(0,Math.min(3,Number(row.phase)||0));
       const target=targetForPhase(phase);
+      if(etaState.phase!==phase){ etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase }; }
       if(distanceM(row.lat,row.lng,target.lat,target.lng)<=target.radius) return {text:'Stigli na odredište',delay:''};
       const raw=new Date(Date.now()+rawEtaMinutes(row)*60000);
       const candidate=Math.round(raw.getTime()/60000)*60000;
@@ -1236,7 +1279,7 @@
       const hhmm=target.planned.split(':').map(Number);
       const planned=new Date(eta); planned.setHours(hhmm[0],hhmm[1],0,0);
       const late=Math.round((eta-planned)/60000);
-      return {text:formatClock(eta),delay:late>=2?'(kasni '+late+' min.)':''};
+      return {text:formatClock(eta),planned:target.planned,offset:late,delay:''};
     }
 
     function referenceRow(){
@@ -1557,22 +1600,35 @@
       updateMapButton();
       const ref=referenceRow();
       if(!ref){
-        livePhase.textContent='ČEKANJE POČETKA PRAĆENJA'; livePlace.textContent='Nema aktivne lokacije'; liveEta.textContent='—'; return;
+        livePhase.textContent='ČEKANJE POČETKA PRAĆENJA'; livePlace.textContent='Nema aktivne lokacije'; liveEta.textContent='—'; liveDelay.textContent=''; liveDelay.className='delay'; updateWeddingProgress(); return;
       }
-      const phase=Math.max(0,Math.min(3,Number(ref.phase)||0));
-      livePhase.textContent=PHASE_LABELS[phase];
+      const phase=weddingStarted()?Math.max(0,Math.min(3,Number(ref.phase)||0)):0;
+      livePhase.textContent=weddingStarted()?PHASE_LABELS[phase]:'ČEKANJE POČETKA SVADBE';
       const gFresh=isFresh(rows.groom,180), bFresh=isFresh(rows.bride,180);
       livePlace.textContent=gFresh?'Mladoženja je referentna lokacija':(bFresh?'Mlada je trenutačno referentna lokacija':'Posljednja poznata lokacija');
       const eta=stableEta(ref);
-      liveEta.textContent=eta.text; liveDelay.textContent=eta.delay; liveDelay.classList.toggle('late',!!eta.delay);
-      etaNote.textContent=(gFresh?'Procjena prema mladoženji. ':'Procjena prema dostupnoj lokaciji. ')+'ETA se mijenja tek nakon stabilizacije GPS-a.';
+      // Razlika od najmanje jedne minute: prekriži planirano i istakni novu procjenu.
+      liveEta.className='';
+      liveDelay.className='delay';
+      if(Number.isFinite(eta.offset) && Math.abs(eta.offset)>=1){
+        const early=eta.offset<0;
+        const status=early?'early':'late';
+        liveEta.textContent=eta.planned;
+        liveEta.classList.add('eta-original',status);
+        liveDelay.classList.add('eta-adjusted',status);
+        liveDelay.textContent=eta.text;
+      } else {
+        liveEta.textContent=eta.text;
+        liveDelay.textContent='';
+      }
+      etaNote.textContent=!weddingStarted()?'Položaji mladenaca bit će dostupni na dan vjenčanja od 12:00 sati.':(gFresh?'Procjena prema mladoženji. ':bFresh?'Procjena prema mladi. ':'Posljednja poznata lokacija. ')+
+        'Vrijeme dolaska može se promijeniti tijekom vožnje.';
       const newest=[rows.groom,rows.bride].filter(Boolean).sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at))[0];
       const ageSec=(Date.now()-new Date(newest.updated_at).getTime())/1000;
       liveUpdated.textContent='Posljednje ažuriranje: '+new Date(newest.updated_at).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const online=ageSec<90;
       liveDot.classList.toggle('offline',!online); liveConnection.textContent=online?'Lokacija uživo':'Posljednja poznata lokacija';
-      progressFill.style.width=progressPercent(ref).toFixed(1)+'%';
-      progressSteps.forEach((el,i)=>{el.classList.toggle('done',i<phase);el.classList.toggle('active',i===phase);});
+      updateWeddingProgress();
     }
 
     function filteredFix(c){
@@ -1608,6 +1664,7 @@
 
     // Prikaz javnih lokacija; slanje GPS-a radi samo mobilna aplikacija.
     fetchLiveLocation(); setInterval(fetchLiveLocation,10000);
+    setInterval(updateWeddingProgress,1000);
 
 
     loadAlbum();
