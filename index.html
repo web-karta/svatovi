@@ -943,7 +943,6 @@
         <div class="route-error" id="routeError"></div>
         <ol class="route-instructions" id="routeInstructions"></ol>
       </div>
-      <div class="map-credit">Kartografski podaci: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener">© CARTO</a></div>
       <div class="couple-map-foot">
         <span class="couple-map-legend"><span class="legend-dot groom"></span> Mladoženja</span>
         <span class="couple-map-legend"><span class="legend-dot bride"></span> Mlada</span>
@@ -1376,19 +1375,51 @@
         if(trail.length>250) trail.shift();
       }
     }
+    // Naziv naselja prikazuje se u drugom retku popup-prozora.
+    // Geokodiranje se pokreće tek pri otvaranju popupa, uz predmemoriju.
+    const popupPlaces={groom:null,bride:null};
+    function popupPersonHtml(role){
+      const title=role==='groom'?'Mladoženja':'Mladenka';
+      const row=rows[role];
+      if(!row) return '<b>'+title+'</b><br>Lokacija nije dostupna';
+      const cache=popupPlaces[role];
+      const valid=cache && distanceM(cache.lat,cache.lng,row.lat,row.lng)<300 && Date.now()-cache.time<300000;
+      const place=valid?cache.name:nearestPlace(row.lat,row.lng);
+      return '<b>'+title+'</b><br>'+escapeHtml(place);
+    }
+    async function updatePersonPopupPlace(role){
+      const marker=role==='groom'?groomMarker:brideMarker;
+      const row=rows[role];
+      if(!marker||!row) return;
+      marker.setPopupContent(popupPersonHtml(role));
+      const cached=popupPlaces[role];
+      if(cached && distanceM(cached.lat,cached.lng,row.lat,row.lng)<300 && Date.now()-cached.time<300000) return;
+      const lat=row.lat,lng=row.lng;
+      try{
+        const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&addressdetails=1&accept-language=hr&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);
+        const response=await fetch(url,{headers:{'Accept':'application/json'}});
+        if(!response.ok) return;
+        const data=await response.json();
+        const a=data.address||{};
+        const name=a.village||a.town||a.city||a.hamlet||a.suburb||a.municipality||a.county||data.name;
+        if(!name) return;
+        popupPlaces[role]={lat,lng,name,time:Date.now()};
+        if(marker.isPopupOpen()) marker.setPopupContent(popupPersonHtml(role));
+      }catch(error){ console.warn('Naziv mjesta nije dostupan:',error); }
+    }
     function updateCoupleMap(){
       if(typeof L==='undefined') return;
       appendTrail('groom',rows.groom); appendTrail('bride',rows.bride);
       if(!coupleMap) return;
       if(rows.groom){
         const ll=[rows.groom.lat,rows.groom.lng];
-        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup('<b>Mladoženja</b>');
-        else groomMarker.setLatLng(ll);
+        if(!groomMarker) groomMarker=L.marker(ll,{icon:personDivIcon('groom'),zIndexOffset:1000}).addTo(coupleMap).bindPopup(popupPersonHtml('groom')).on('popupopen',()=>updatePersonPopupPlace('groom'));
+        else { groomMarker.setLatLng(ll); if(groomMarker.isPopupOpen()) groomMarker.setPopupContent(popupPersonHtml('groom')); }
       }
       if(rows.bride){
         const ll=[rows.bride.lat,rows.bride.lng];
-        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup('<b>Mlada</b>');
-        else brideMarker.setLatLng(ll);
+        if(!brideMarker) brideMarker=L.marker(ll,{icon:personDivIcon('bride'),zIndexOffset:900}).addTo(coupleMap).bindPopup(popupPersonHtml('bride')).on('popupopen',()=>updatePersonPopupPlace('bride'));
+        else { brideMarker.setLatLng(ll); if(brideMarker.isPopupOpen()) brideMarker.setPopupContent(popupPersonHtml('bride')); }
       }
       groomTrailLine&&groomTrailLine.setLatLngs(groomTrail);
       brideTrailLine&&brideTrailLine.setLatLngs(brideTrail);
