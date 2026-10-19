@@ -404,6 +404,11 @@
       line-height:1.5;
     }
 
+    .album-like{display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:7px 12px;border:1px solid #d6cec3;border-radius:30px;background:white;color:#444;font:inherit;cursor:pointer}
+    .album-like svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;transition:fill .2s,color .2s}
+    .album-like.liked{color:#cf3045;border-color:#cf3045}
+    .album-like.liked svg{fill:#cf3045}
+    .album-like:disabled{opacity:.6;cursor:wait}
     .owner-panel{
       margin-top:28px;
       padding:20px;
@@ -1019,52 +1024,97 @@
       return place === 'Crkva' ? churchGallery : salonGallery;
     }
 
-    function renderItem(item){
+    // ID ovog preglednika služi samo za osnovno sprječavanje ponovljenih lajkova.
+    const LIKE_VISITOR_KEY = 'svatovi_album_visitor_v1';
+    let visitorId = localStorage.getItem(LIKE_VISITOR_KEY);
+    if(!visitorId){ visitorId = crypto.randomUUID(); localStorage.setItem(LIKE_VISITOR_KEY, visitorId); }
+    let albumRefreshInProgress = false;
+
+    async function loadLikes(){
+      const {data,error} = await supabaseClient.from('album_likes').select('album_id,visitor_id');
+      if(error){ console.error('Lajkovi:',error); return new Map(); }
+      const map = new Map();
+      for(const like of data || []){
+        const state = map.get(like.album_id) || {count:0,mine:false};
+        state.count++;
+        if(like.visitor_id === visitorId) state.mine = true;
+        map.set(like.album_id,state);
+      }
+      return map;
+    }
+
+    async function toggleLike(albumId,button){
+      button.disabled = true;
+      const wasLiked = button.classList.contains('liked');
+      try {
+        let result;
+        if(wasLiked){
+          result = await supabaseClient.from('album_likes').delete()
+            .eq('album_id',albumId).eq('visitor_id',visitorId);
+        }else{
+          result = await supabaseClient.from('album_likes').insert({album_id:albumId,visitor_id:visitorId});
+        }
+        if(result.error) throw result.error;
+        await refreshAlbum();
+      }catch(error){ console.error(error); alert('Lajk nije spremljen. Provjeri pravila za album_likes.'); }
+      finally { button.disabled = false; }
+    }
+
+    function renderItem(item,likes){
       const wrapper = document.createElement('div');
       wrapper.className = 'album-item';
       wrapper.dataset.id = item.id;
       wrapper.dataset.path = item.file_path;
-
       let media;
-      if(item.file_type.startsWith('video/')){
+      if((item.file_type || '').startsWith('video/')){
         media = document.createElement('video');
         media.src = item.file_url;
         media.controls = true;
         media.playsInline = true;
-      } else {
+      }else{
         media = document.createElement('img');
         media.src = item.file_url;
         media.alt = item.message || item.place;
         media.loading = 'lazy';
       }
-
+      wrapper.appendChild(media);
       const meta = document.createElement('div');
       meta.className = 'album-meta';
-      meta.innerHTML = `
-        <strong>${escapeHtml(item.guest_name)}</strong><br>
-        ${escapeHtml(item.place)}<br>
-        ${escapeHtml(item.message || '')}
-        <br><small>${new Date(item.created_at).toLocaleString('hr-HR')}</small>
-      `;
+      meta.innerHTML = `<strong>${escapeHtml(item.guest_name)}</strong><br>${escapeHtml(item.place)}<br>${escapeHtml(item.message || '')}<br><small>${new Date(item.created_at).toLocaleString('hr-HR')}</small>`;
+      const state = likes.get(item.id) || {count:0,mine:false};
+      const likeButton = document.createElement('button');
+      likeButton.type = 'button';
+      likeButton.className = 'album-like' + (state.mine ? ' liked' : '');
+      likeButton.setAttribute('aria-label',state.mine ? 'Ukloni lajk' : 'Lajkaj fotografiju');
+      likeButton.setAttribute('aria-pressed',String(state.mine));
+      likeButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${state.count}</span>`;
+      likeButton.addEventListener('click',()=>toggleLike(item.id,likeButton));
+      meta.appendChild(likeButton);
+      wrapper.appendChild(meta);
       galleryForPlace(item.place).prepend(wrapper);
     }
 
-    async function loadAlbum(){
-      churchGallery.innerHTML = '';
-      salonGallery.innerHTML = '';
-
-      const { data, error } = await supabaseClient
-        .from('album_items')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if(error){
-        console.error(error);
-        return;
-      }
-
-      data.forEach(renderItem);
+    async function refreshAlbum(){
+      if(albumRefreshInProgress) return;
+      albumRefreshInProgress = true;
+      try {
+        const {data,error} = await supabaseClient.from('album_items').select('*').order('created_at',{ascending:true});
+        if(error){console.error('Album:',error);return;}
+        const likes = await loadLikes();
+        const focused = document.activeElement;
+        if(focused && focused.closest && focused.closest('.album-like')) focused.blur();
+        churchGallery.replaceChildren();
+        salonGallery.replaceChildren();
+        (data || []).forEach(item=>renderItem(item,likes));
+      }finally{albumRefreshInProgress=false;}
     }
+    const loadAlbum = refreshAlbum;
+    // Realtime obavijesti + periodična provjera ako websocket nije dostupan.
+    supabaseClient.channel('svatovi-album-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'album_items'},()=>refreshAlbum())
+      .on('postgres_changes',{event:'*',schema:'public',table:'album_likes'},()=>refreshAlbum())
+      .subscribe();
+    setInterval(()=>{if(!document.hidden)refreshAlbum();},5000);
 
     uploadForm.addEventListener('submit', async function(e){
       e.preventDefault();
@@ -1113,7 +1163,7 @@
           continue;
         }
 
-        renderItem(inserted);
+        await refreshAlbum();
       }
 
       uploadForm.reset();
