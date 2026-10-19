@@ -438,6 +438,20 @@
     .album-lightbox-prev{left:8px}.album-lightbox-next{right:8px}
     .album-lightbox-nav:disabled{opacity:.2;cursor:default}
     @media(max-width:600px){.album-gallery{gap:5px}.album-section{padding:15px}.album-section-toggle>span:first-child{font-size:23px}.album-count{font-size:11px}.album-lightbox-center{padding:64px 12px 28px}.album-lightbox-info{align-items:flex-start;gap:8px;font-size:11px}.album-lightbox-nav{top:44%;width:32px;height:43px;font-size:28px}.album-lightbox-prev{left:2px}.album-lightbox-next{right:2px}}
+
+    /* Odvojeni pregled kategorije: naslov i mreza n x 3 */
+    .album-category-view[hidden]{display:none!important}
+    .album-category-view{position:fixed;inset:0;z-index:99990;background:#f8f5ef;overflow-y:auto;overscroll-behavior:contain;font-family:'Libre Baskerville',serif}
+    .album-category-inner{max-width:1080px;margin:0 auto;padding:26px 20px 80px}
+    .album-category-header{display:flex;align-items:center;gap:18px;margin-bottom:24px}
+    .album-category-back{flex:none;border:1px solid #222;border-radius:999px;background:#fff;padding:12px 18px;font:inherit;cursor:pointer;color:#111}
+    .album-category-title{margin:0;font-size:clamp(24px,4vw,38px);line-height:1.25}
+    .album-category-counter{font-size:12px;color:#777;margin-left:auto}
+    .album-category-grid .album-gallery{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px;margin:0}
+    .album-category-grid .album-item{width:100%;aspect-ratio:1/1}
+    .album-category-empty{padding:48px 16px;text-align:center;color:#777}
+    .album-section-toggle .album-chevron{transform:rotate(-90deg)}
+    @media(max-width:600px){.album-category-inner{padding:18px 10px 90px}.album-category-header{gap:10px;flex-wrap:wrap}.album-category-back{padding:10px 12px}.album-category-counter{width:100%;margin-left:0}.album-category-grid .album-gallery{gap:4px}}
     .owner-panel{
       margin-top:28px;
       padding:20px;
@@ -960,6 +974,19 @@
     </section>
   </main>
 
+
+  <div class="album-category-view" id="albumCategoryView" hidden role="dialog" aria-modal="true" aria-label="Album fotografija" tabindex="-1">
+    <div class="album-category-inner">
+      <div class="album-category-header">
+        <button type="button" class="album-category-back" id="albumCategoryBack">← Natrag</button>
+        <h2 class="album-category-title" id="albumCategoryTitle">Crkva</h2>
+        <span class="album-category-counter" id="albumCategoryCounter"></span>
+      </div>
+      <div class="album-category-grid" id="albumCategoryGrid"></div>
+      <div class="album-category-empty" id="albumCategoryEmpty" hidden>Još nema fotografija ni videozapisa.</div>
+    </div>
+  </div>
+
   <div class="album-lightbox" id="albumLightbox" hidden role="dialog" aria-modal="true" aria-label="Pregled fotografija i videozapisa" tabindex="-1">
     <button type="button" class="album-lightbox-close" aria-label="Zatvori pregled">×</button>
     <button type="button" class="album-lightbox-nav album-lightbox-prev" aria-label="Prethodna fotografija">‹</button>
@@ -1108,12 +1135,52 @@
     let previousAlbumFocus = null;
     function itemsForPlace(place){return albumItems.filter(item=>item.place===place);}
     function albumCountLabel(n){return n===1?'1 fotografija / video':`${n} fotografija / videa`;}
+    const albumCategoryView=document.getElementById('albumCategoryView');
+    const albumCategoryGrid=document.getElementById('albumCategoryGrid');
+    const albumCategoryEmpty=document.getElementById('albumCategoryEmpty');
+    let currentCategoryGallery=null;
+    let currentCategoryHome=null;
+    let categoryPreviousFocus=null;
+    function updateCategoryView(){
+      if(albumCategoryView.hidden)return;
+      const count=itemsForPlace(activeAlbumPlace).length;
+      document.getElementById('albumCategoryCounter').textContent=albumCountLabel(count);
+      albumCategoryEmpty.hidden=count>0;
+    }
+    function openAlbumCategory(place){
+      if(!albumCategoryView.hidden)closeAlbumCategory();
+      activeAlbumPlace=place;
+      currentCategoryGallery=galleryForPlace(place);
+      currentCategoryHome=currentCategoryGallery.parentElement;
+      categoryPreviousFocus=document.activeElement;
+      currentCategoryGallery.hidden=false;
+      albumCategoryGrid.appendChild(currentCategoryGallery);
+      document.getElementById('albumCategoryTitle').textContent=place;
+      albumCategoryView.hidden=false;
+      document.body.style.overflow='hidden';
+      updateCategoryView();
+      albumCategoryView.scrollTop=0;
+      document.getElementById('albumCategoryBack').focus();
+    }
+    function closeAlbumCategory(){
+      if(albumCategoryView.hidden)return;
+      if(!albumLightbox.hidden)closeAlbumItem();
+      if(currentCategoryGallery&&currentCategoryHome){
+        currentCategoryHome.appendChild(currentCategoryGallery);
+        currentCategoryGallery.hidden=true;
+      }
+      currentCategoryGallery=null;
+      currentCategoryHome=null;
+      albumCategoryView.hidden=true;
+      document.body.style.overflow='';
+      if(categoryPreviousFocus&&categoryPreviousFocus.isConnected)categoryPreviousFocus.focus();
+    }
     document.querySelectorAll('.album-section-toggle').forEach(button=>{
-      button.addEventListener('click',()=>{
-        const expanded=button.getAttribute('aria-expanded')==='true';
-        button.setAttribute('aria-expanded',String(!expanded));
-        document.getElementById(button.getAttribute('aria-controls')).hidden=expanded;
-      });
+      button.addEventListener('click',()=>openAlbumCategory(button.dataset.place));
+    });
+    document.getElementById('albumCategoryBack').addEventListener('click',closeAlbumCategory);
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&!albumCategoryView.hidden&&albumLightbox.hidden)closeAlbumCategory();
     });
     function createLikeButton(item,likes){
       const state=likes.get(item.id)||{count:0,mine:false};
@@ -1162,7 +1229,7 @@
     function closeAlbumItem(){
       albumLightbox.hidden=true;
       albumLightboxMedia.replaceChildren();
-      document.body.style.overflow='';
+      if(albumCategoryView.hidden)document.body.style.overflow='';
       if(previousAlbumFocus&&previousAlbumFocus.isConnected)previousAlbumFocus.focus();
     }
     function moveAlbumItem(delta){
@@ -1217,6 +1284,7 @@
         albumItems.forEach(item=>renderItem(item,likes));
         document.getElementById('churchCount').textContent=albumCountLabel(itemsForPlace('Crkva').length);
         document.getElementById('salonCount').textContent=albumCountLabel(itemsForPlace('Svadbeni salon').length);
+        updateCategoryView();
         if(!albumLightbox.hidden)showAlbumItem();
       }finally{albumRefreshInProgress=false;}
     }
