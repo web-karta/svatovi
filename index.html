@@ -1374,6 +1374,19 @@
     const albumUploadDetails=document.getElementById('album-upload-details');
     let albumUploadInProgress=false;
     let albumSuccessResetTimer=null;
+    function resetAlbumUploadNotice(){
+      albumSubmitButton.textContent='Pošalji u album gostiju';
+      albumSubmitButton.classList.remove('upload-success');
+      albumUploadPanel.hidden=true;
+      albumUploadPanel.dataset.status='';
+    }
+    function describeUploadError(err){
+      const msg=String(err?.message || err?.error_description || err?.error || 'Nepoznata pogreška.');
+      if(/fetch|network|failed to fetch/i.test(msg))return 'Mrežna pogreška: provjerite internetsku vezu i pokušajte ponovno.';
+      if(/payload too large|entity too large|maximum.*size|file.*size|413/i.test(msg))return 'Datoteka je prevelika za dopuštenu veličinu prijenosa.';
+      if(/row.level.security|permission|not authorized|403|unauthorized/i.test(msg))return 'Nedostaje dopuštenje za spremanje u Supabase (pravila pristupa).';
+      return msg.slice(0,260);
+    }
     function setAlbumProgress(completed,total,elapsedSeconds,failures,activeName=''){
       const percentage=total?Math.round(completed/total*100):0;
       albumUploadFill.style.width=percentage+'%';
@@ -1404,6 +1417,7 @@
       albumUploadPanel.dataset.status='uploading';
       const startTime=Date.now();
       let completed=0,failures=0;
+      const uploadErrors=[];
       const elapsed=()=>Math.floor((Date.now()-startTime)/1000);
       setAlbumProgress(0,files.length,0,0);
       const clock=setInterval(()=>setAlbumProgress(completed,files.length,elapsed(),failures,completed<files.length?'Datoteka '+(completed+1)+'/'+files.length:''),1000);
@@ -1423,6 +1437,7 @@
             if(insertError)throw insertError;
           }catch(err){
             failures++;
+            uploadErrors.push(describeUploadError(err));
             console.error('Pogreška pri prijenosu u album:',err);
           }finally{
             completed++;
@@ -1437,15 +1452,15 @@
           albumSubmitButton.classList.add('upload-success');
           uploadForm.reset();
           filePickerStatus.textContent='Nijedna datoteka nije odabrana.';
-          albumSuccessResetTimer=setTimeout(()=>{
-            albumSubmitButton.textContent='Pošalji u album gostiju';
-            albumSubmitButton.classList.remove('upload-success');
-          },9000);
+          albumSuccessResetTimer=setTimeout(resetAlbumUploadNotice,4000);
         }else{
           albumUploadPanel.dataset.status='error';
-          albumUploadLabel.textContent=`Prijenos djelomično/neuspješan: ${failures} od ${files.length} datoteka nije dodano u album.`;
-          albumSubmitButton.textContent='Pokušaj ponovno';
-          // Ne resetiraj obrazac: korisnik može odabrati datoteke za ponovni pokušaj.
+          albumUploadLabel.textContent='Greška u prijenosu';
+          const reasons=[...new Set(uploadErrors)];
+          albumUploadDetails.textContent=`Neuspjelo ${failures} od ${files.length} datoteka. ${reasons.join(' · ')} Pokušajte ponovno.`;
+          albumSubmitButton.textContent='Pokušajte ponovno';
+          // Ostavlja odabrane datoteke radi ponovnog pokušaja.
+          albumSuccessResetTimer=setTimeout(resetAlbumUploadNotice,8000);
         }
       }finally{
         clearInterval(clock);
