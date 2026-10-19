@@ -783,6 +783,21 @@
   .map-credit{font-family:'Libre Baskerville',Georgia,serif;font-size:9px;color:#777;text-align:right;padding:3px 12px 7px;background:#fff;}
   .map-credit a{color:inherit;text-decoration:none;}
   .owner-panel,.tracking-controls{display:none!important;}
+
+    /* Album 2026: odabir, sortiranje, prikaz i pristupačnost */
+    .album-file-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:8px;margin:12px 0}
+    .album-preview-item{position:relative;border:1px solid #ded6cb;border-radius:12px;overflow:hidden;background:#fff;min-width:0}
+    .album-preview-item img,.album-preview-item video{width:100%;height:82px;object-fit:cover;display:block}
+    .album-preview-item small{display:block;padding:5px;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .album-preview-remove{position:absolute;right:3px;top:3px;width:27px;height:27px;border-radius:50%;border:1px solid #bbb;background:white;color:#222;cursor:pointer}
+    .album-sort-wrap{display:flex;align-items:center;gap:10px;margin:12px 0 20px;font-size:13px}
+    .album-sort-wrap select{font:inherit;padding:10px;border:1px solid #d9cdbd;border-radius:24px;background:#fff;max-width:220px}
+    .album-lightbox-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .album-download{font:inherit;border:1px solid #ccc;border-radius:24px;background:white;color:#222;padding:10px 13px;cursor:pointer}
+    .album-gallery img{background:#eee8df}
+    .album-lightbox-nav{touch-action:manipulation}
+    @media(max-width:600px){.album-lightbox-center{padding:68px 42px 24px}.album-lightbox-info{flex-wrap:wrap}.album-lightbox-actions{margin-left:auto}.album-download{font-size:11px;padding:8px}}
+    @media(prefers-reduced-motion:reduce){.progress-cursor,.album-item{animation:none!important;transition:none!important}}
 </style>
   <link rel="manifest" href="./manifest.json">
 </head>
@@ -981,6 +996,7 @@
             </div>
           </div>
 
+          <div id="album-file-preview" class="album-file-preview" aria-live="polite"></div>
           <button type="submit" class="submit-btn" id="album-submit-btn">Pošalji u album gostiju</button>
           <div class="upload-progress-panel" id="album-upload-progress" role="status" aria-live="polite" hidden>
             <strong id="album-upload-label">Priprema prijenosa...</strong>
@@ -1011,6 +1027,7 @@
         <h2 class="album-category-title" id="albumCategoryTitle">Crkva</h2>
         <span class="album-category-counter" id="albumCategoryCounter"></span>
       </div>
+      <div class="album-sort-wrap"><label for="albumSort">Redoslijed:</label><select id="albumSort"><option value="new">Najnovije</option><option value="old">Najstarije</option><option value="popular">Najviše lajkova</option></select></div>
       <div class="album-category-grid" id="albumCategoryGrid"></div>
       <div class="album-category-empty" id="albumCategoryEmpty" hidden>Još nema fotografija ni videozapisa.</div>
     </div>
@@ -1020,7 +1037,7 @@
     <span class="album-lightbox-position" id="albumLightboxPosition" aria-live="polite" aria-label="Redni broj fotografije"></span>
     <button type="button" class="album-lightbox-close" aria-label="Zatvori pregled">×</button>
     <button type="button" class="album-lightbox-nav album-lightbox-prev" aria-label="Prethodna fotografija">‹</button>
-    <div class="album-lightbox-center"><div class="album-lightbox-media" id="albumLightboxMedia"></div><div class="album-lightbox-info"><div id="albumLightboxDetails"></div><div id="albumLightboxLike"></div></div></div>
+    <div class="album-lightbox-center"><div class="album-lightbox-media" id="albumLightboxMedia"></div><div class="album-lightbox-info"><div id="albumLightboxDetails"></div><div class="album-lightbox-actions"><div id="albumLightboxLike"></div><button type="button" id="albumDownload" class="album-download" aria-label="Preuzmi datoteku" title="Preuzmi fotografiju ili video">↓ Preuzmi</button></div></div></div>
     <button type="button" class="album-lightbox-nav album-lightbox-next" aria-label="Sljedeća fotografija">›</button>
   </div>
 
@@ -1095,10 +1112,44 @@
     const uploadForm = document.getElementById('uploadForm');
     const guestFiles = document.getElementById('guest-files');
     const filePickerStatus = document.getElementById('file-picker-status');
-    guestFiles.addEventListener('change', () => {
-      const selected = Array.from(guestFiles.files);
-      filePickerStatus.textContent = selected.length === 0 ? 'Nijedna datoteka nije odabrana.' : selected.length === 1 ? selected[0].name : `Odabrano datoteka: ${selected.length}`;
+    const albumPreview=document.getElementById('album-file-preview');
+    let selectedAlbumFiles=[];
+    let successfulFileKeys=new Set();
+    let previewObjectUrls=[];
+    const MAX_IMAGE_BYTES=25*1024*1024;
+    const MAX_VIDEO_BYTES=45*1024*1024; // Storage bucket currently configured to 50 MB
+    function fileIdentity(file){return [file.name,file.size,file.lastModified,file.type].join(':');}
+    function renderAlbumPreview(){
+      previewObjectUrls.forEach(URL.revokeObjectURL);previewObjectUrls=[];
+      albumPreview.replaceChildren();
+      selectedAlbumFiles.forEach((file,i)=>{
+        const box=document.createElement('div');box.className='album-preview-item';
+        const url=URL.createObjectURL(file);previewObjectUrls.push(url);
+        const media=document.createElement(file.type.startsWith('video/')?'video':'img');media.src=url;
+        if(media.tagName==='VIDEO'){media.muted=true;media.preload='metadata';}
+        const caption=document.createElement('small');caption.textContent=file.name;
+        const remove=document.createElement('button');remove.type='button';remove.className='album-preview-remove';remove.textContent='×';remove.setAttribute('aria-label','Ukloni '+file.name);
+        remove.addEventListener('click',()=>{selectedAlbumFiles.splice(i,1);renderAlbumPreview();});
+        box.append(media,remove,caption);albumPreview.appendChild(box);
+      });
+      filePickerStatus.textContent=selectedAlbumFiles.length===0?'Nijedna datoteka nije odabrana.':`Odabrano datoteka: ${selectedAlbumFiles.length}`;
+    }
+    guestFiles.addEventListener('change',()=>{
+      selectedAlbumFiles=Array.from(guestFiles.files);successfulFileKeys.clear();renderAlbumPreview();
     });
+    async function prepareAlbumImage(file){
+      if(!file.type.startsWith('image/') || file.type==='image/gif' || file.type==='image/svg+xml')return file;
+      if(file.size<350*1024)return file;
+      try{
+        const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
+        const ratio=Math.min(1,2200/Math.max(bitmap.width,bitmap.height));
+        const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*ratio);canvas.height=Math.round(bitmap.height*ratio);
+        canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();
+        const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.86));
+        if(!blob||blob.size>=file.size)return file;
+        return new File([blob],file.name.replace(/\.[^.]+$/, '')+'.jpg',{type:'image/jpeg',lastModified:file.lastModified});
+      }catch(e){console.warn('Optimizacija nije dostupna:',e);return file;}
+    }
     const guestName = document.getElementById('guest-name');
     const guestPlace = document.getElementById('guest-place');
     const guestMessage = document.getElementById('guest-message');
@@ -1114,6 +1165,8 @@
       }[char]));
     }
 
+    const albumSort=document.getElementById('albumSort');
+    albumSort.addEventListener('change',()=>{renderAlbumFromCache();});
     function galleryForPlace(place){
       return place === 'Crkva' ? churchGallery : salonGallery;
     }
@@ -1252,8 +1305,14 @@
       button.addEventListener('click',async()=>{await toggleLike(item.id,button);});
       return button;
     }
+    function sortedItems(place){
+      const list=itemsForPlace(place).slice();
+      if(albumSort.value==='old')list.sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+      if(albumSort.value==='popular')list.sort((a,b)=>(albumLikes.get(b.id)?.count||0)-(albumLikes.get(a.id)?.count||0)||new Date(b.created_at)-new Date(a.created_at));
+      return list;
+    }
     function openAlbumItem(place,index){
-      const list=itemsForPlace(place);
+      const list=sortedItems(place);
       if(!list.length)return;
       activeAlbumPlace=place;
       activeAlbumIndex=Math.max(0,Math.min(index,list.length-1));
@@ -1267,7 +1326,7 @@
     }
     function showAlbumItem(){
       if(albumLightbox.hidden)return;
-      const list=itemsForPlace(activeAlbumPlace);
+      const list=sortedItems(activeAlbumPlace);
       if(!list.length){closeAlbumItem();return;}
       activeAlbumIndex=Math.min(activeAlbumIndex,list.length-1);
       const item=list[activeAlbumIndex];
@@ -1285,6 +1344,8 @@
       albumLightboxDetails.append(name,date);
       if(item.message){const message=document.createElement('div');message.textContent=item.message;albumLightboxDetails.appendChild(message);}
       albumLightboxLike.replaceChildren(createLikeButton(item,albumLikes));
+      const download=document.getElementById('albumDownload');
+      download.onclick=()=>{const a=document.createElement('a');a.href=item.file_url;a.download=(item.file_path||'fotografija').split('/').pop();a.rel='noopener';document.body.appendChild(a);a.click();a.remove();};
       document.querySelector('.album-lightbox-prev').disabled=activeAlbumIndex===0;
       document.querySelector('.album-lightbox-next').disabled=activeAlbumIndex===list.length-1;
     }
@@ -1302,7 +1363,7 @@
     }
     function moveAlbumItem(delta){
       const next=activeAlbumIndex+delta;
-      if(next>=0&&next<itemsForPlace(activeAlbumPlace).length){activeAlbumIndex=next;showAlbumItem();}
+      if(next>=0&&next<sortedItems(activeAlbumPlace).length){activeAlbumIndex=next;showAlbumItem();}
     }
     document.querySelector('.album-lightbox-close').addEventListener('click',closeAlbumItem);
     document.querySelector('.album-lightbox-prev').addEventListener('click',()=>moveAlbumItem(-1));
@@ -1331,11 +1392,16 @@
       else{media.alt=item.message||item.place;media.loading='lazy';}
       wrapper.appendChild(media);
       if(isVideo){const badge=document.createElement('span');badge.className='album-video-indicator';badge.textContent='▶ Video';wrapper.appendChild(badge);}
-      wrapper.addEventListener('click',()=>openAlbumItem(place,itemsForPlace(place).findIndex(x=>x.id===item.id)));
+      wrapper.addEventListener('click',()=>openAlbumItem(place,sortedItems(place).findIndex(x=>x.id===item.id)));
       wrapper.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();wrapper.click();}});
       galleryForPlace(place).appendChild(wrapper);
     }
 
+    function renderAlbumFromCache(){
+      churchGallery.replaceChildren();salonGallery.replaceChildren();
+      ['Crkva','Svadbeni salon'].forEach(place=>sortedItems(place).forEach(item=>renderItem(item,albumLikes)));
+      if(!albumLightbox.hidden)showAlbumItem();
+    }
     async function refreshAlbum(){
       if(albumRefreshInProgress) return;
       albumRefreshInProgress = true;
@@ -1347,9 +1413,7 @@
         if(focused && focused.closest && focused.closest('.album-like')) focused.blur();
         albumItems=(data||[]).slice().reverse();
         albumLikes=likes;
-        churchGallery.replaceChildren();
-        salonGallery.replaceChildren();
-        albumItems.forEach(item=>renderItem(item,likes));
+        renderAlbumFromCache();
         document.getElementById('churchCount').textContent=albumCountLabel(itemsForPlace('Crkva').length);
         document.getElementById('salonCount').textContent=albumCountLabel(itemsForPlace('Svadbeni salon').length);
         updateCategoryView();
@@ -1397,8 +1461,10 @@
     uploadForm.addEventListener('submit', async function(e){
       e.preventDefault();
       if(albumUploadInProgress)return;
-      const files=Array.from(guestFiles.files);
-      if(!files.length)return;
+      const files=selectedAlbumFiles.filter(f=>!successfulFileKeys.has(fileIdentity(f)));
+      if(!files.length){if(selectedAlbumFiles.length===0)filePickerStatus.textContent='Najprije odaberite datoteke.';return;}
+      const invalid=files.find(f=>!(f.type.startsWith('image/')||f.type.startsWith('video/')) || f.size>(f.type.startsWith('video/')?MAX_VIDEO_BYTES:MAX_IMAGE_BYTES));
+      if(invalid){albumUploadPanel.hidden=false;albumUploadPanel.dataset.status='error';albumUploadLabel.textContent='Greška u prijenosu';albumUploadDetails.textContent='Nedopušten format ili prevelika datoteka: '+invalid.name+'. Pokušajte ponovno.';clearTimeout(albumSuccessResetTimer);albumSuccessResetTimer=setTimeout(resetAlbumUploadNotice,8000);return;}
       const name=guestName.value.trim();
       const place=guestPlace.value;
       if(!['Crkva','Svadbeni salon'].includes(place)){
@@ -1408,6 +1474,7 @@
       }
       guestPlace.setCustomValidity('');
       const message=guestMessage.value.trim();
+      if(!name){guestName.reportValidity();return;}
       clearTimeout(albumSuccessResetTimer);
       albumUploadInProgress=true;
       albumSubmitButton.disabled=true;
@@ -1424,17 +1491,23 @@
       try{
         for(const file of files){
           try{
-            const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+            const prepared=await prepareAlbumImage(file);
+            const safeName=prepared.name.replace(/[^a-zA-Z0-9._-]/g,'_');
             const filePath=`${place}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
             const {error:uploadError}=await supabaseClient.storage.from(BUCKET_NAME)
-              .upload(filePath,file,{cacheControl:'3600',upsert:false});
+              .upload(filePath,prepared,{cacheControl:'3600',upsert:false});
             if(uploadError)throw uploadError;
             const {data:publicData}=supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(filePath);
             const {error:insertError}=await supabaseClient.from('album_items').insert({
               guest_name:name,place,message,file_path:filePath,
-              file_url:publicData.publicUrl,file_type:file.type
+              file_url:publicData.publicUrl,file_type:prepared.type
             });
-            if(insertError)throw insertError;
+            if(insertError){
+              // Avoid orphaned file after database failure; retry uploads with new path.
+              await supabaseClient.storage.from(BUCKET_NAME).remove([filePath]).catch(()=>{});
+              throw insertError;
+            }
+            successfulFileKeys.add(fileIdentity(file));
           }catch(err){
             failures++;
             uploadErrors.push(describeUploadError(err));
@@ -1451,13 +1524,14 @@
           albumSubmitButton.textContent='✓ Preneseno u svadbeni album';
           albumSubmitButton.classList.add('upload-success');
           uploadForm.reset();
+          selectedAlbumFiles=[];successfulFileKeys.clear();renderAlbumPreview();
           filePickerStatus.textContent='Nijedna datoteka nije odabrana.';
           albumSuccessResetTimer=setTimeout(resetAlbumUploadNotice,4000);
         }else{
           albumUploadPanel.dataset.status='error';
           albumUploadLabel.textContent='Greška u prijenosu';
           const reasons=[...new Set(uploadErrors)];
-          albumUploadDetails.textContent=`Neuspjelo ${failures} od ${files.length} datoteka. ${reasons.join(' · ')} Pokušajte ponovno.`;
+          albumUploadDetails.textContent=`Neuspjelo ${failures} od ${files.length} datoteka. ${reasons.join(' · ')} Pokušajte ponovno. Već prenesene datoteke neće se ponovno slati.`;
           albumSubmitButton.textContent='Pokušajte ponovno';
           // Ostavlja odabrane datoteke radi ponovnog pokušaja.
           albumSuccessResetTimer=setTimeout(resetAlbumUploadNotice,8000);
@@ -1575,7 +1649,8 @@
     // GPS točnost mora biti zadovoljavajuća; tri uzastopna očitanja
     // potvrđuju napuštanje lokacije. Različiti pragovi sprečavaju titranje.
     function updatePhaseFromFix(lat,lng,accuracy=999,updatedAt=''){
-      if(!weddingStarted() || accuracy>80) return routeState.phase;
+      if(!weddingStarted() || accuracy>60 || !Number.isFinite(lat) || !Number.isFinite(lng)) return routeState.phase;
+      if(updatedAt && Date.now()-new Date(updatedAt).getTime()>180000)return routeState.phase;
       const key=String(updatedAt||'')+':'+lat.toFixed(6)+':'+lng.toFixed(6);
       if(key===lastPhaseFix) return routeState.phase;
       lastPhaseFix=key;
@@ -1636,11 +1711,13 @@
       const started=weddingStarted();
       // Nakon 12:00 na dan svadbe pokazivač ostaje vidljiv čak i bez GPS signala.
       // Ako je GPS nedostupan, ostaje na posljednjoj poznatoj fazi/lokaciji.
-      const percentage=started ? (groom ? progressPercent(groom) : Math.max(0,Math.min(100,(routeState.phase||0)*100/3))) : 0;
+      const percentage=started ? (groom && isFresh(groom,180) ? progressPercent(groom) : Math.max(0,Math.min(100,(routeState.phase||0)*100/3))) : 0;
       progressShell.classList.toggle('before-start',!started);
-      progressFill.style.width=percentage.toFixed(2)+'%';
+      const stableProgress=started ? Math.max(Number(sessionStorage.getItem('svatoviLastProgress')||0),percentage) : 0;
+      if(started)sessionStorage.setItem('svatoviLastProgress',String(stableProgress));
+      progressFill.style.width=stableProgress.toFixed(2)+'%';
       // Središta četiriju oznaka nalaze se na 12.5%, 37.5%, 62.5% i 87.5%.
-      progressCursor.style.left=`calc(12.5% + ${percentage.toFixed(2)}% * 0.75)`;
+      progressCursor.style.left=`calc(12.5% + ${stableProgress.toFixed(2)}% * 0.75)`;
       const phase=started ? (groom ? displayPhase(groom) : (routeState.phase||0)) : -1;
       progressSteps.forEach((el,i)=>{
         el.classList.toggle('done',started && i<phase);
@@ -1701,8 +1778,7 @@
       updateCoupleMap();
     }
 
-    /* Posebna Leaflet karta s Carto Voyager podlogom. Trag se gradi iz
-       uzastopnih očitanja tijekom otvorene stranice, pa je kretanje vidljivo. */
+    /* Petominutni trag preuzima se iz Supabase povijesti, zajednicke svim gostima. */
     const coupleMapModal=document.getElementById('coupleMapModal');
     const coupleMapClose=document.getElementById('coupleMapClose');
     const coupleMapStatus=document.getElementById('coupleMapStatus');
@@ -1711,7 +1787,8 @@
     let routeLine=null, routeUserMarker=null, routeWatchId=null, routeLastOrigin=null, routeLastRequest=0, activeNavTarget=null;
     let sharedMapMode='couple';
     const groomTrail=[], brideTrail=[];
-    let lastTrailKey={groom:null,bride:null};
+    const TRAIL_WINDOW_MS=5*60*1000;
+    let trailHistoryReady=false;
 
     function personDivIcon(role){
       const src=role==='groom'?'mladozenja.png':'mlada.png';
@@ -1740,17 +1817,30 @@
         .addTo(coupleMap).bindPopup('<b>Svadbeni salon Otok</b><br>Grude');
       coupleMap.on('zoomend moveend resize',separateCoupleIcons);
     }
-    function appendTrail(role,row){
-      if(!row || typeof row.lat!=='number' || typeof row.lng!=='number') return;
-      const key=(row.updated_at||'')+'|'+row.lat.toFixed(6)+'|'+row.lng.toFixed(6);
-      if(lastTrailKey[role]===key) return;
-      lastTrailKey[role]=key;
-      const trail=role==='groom'?groomTrail:brideTrail;
-      const prev=trail[trail.length-1];
-      if(!prev || distanceM(prev[0],prev[1],row.lat,row.lng)>8){
-        trail.push([row.lat,row.lng]);
-        if(trail.length>250) trail.shift();
+    function drawRecentTrails(){
+      groomTrailLine?.setLatLngs(groomTrail);
+      brideTrailLine?.setLatLngs(brideTrail);
+    }
+    async function fetchRecentTrails(){
+      const cutoff=new Date(Date.now()-TRAIL_WINDOW_MS).toISOString();
+      const {data,error}=await supabaseClient.from('wedding_location_history')
+        .select('person_id,lat,lng,recorded_at')
+        .in('person_id',[1,2]).gte('recorded_at',cutoff)
+        .order('recorded_at',{ascending:true}).limit(2000);
+      if(error){
+        // Bez SQL migracije nije moguce prikazati zajednicku povijest.
+        console.warn('Povijest GPS-a nije dostupna:',error.message);
+        return;
       }
+      trailHistoryReady=true;
+      groomTrail.length=0; brideTrail.length=0;
+      for(const point of data||[]){
+        const target=point.person_id===1?groomTrail:point.person_id===2?brideTrail:null;
+        if(target && Number.isFinite(point.lat) && Number.isFinite(point.lng)){
+          target.push([point.lat,point.lng]);
+        }
+      }
+      drawRecentTrails();
     }
     // Naziv naselja prikazuje se u drugom retku popup-prozora.
     // Geokodiranje se pokreće tek pri otvaranju popupa, uz predmemoriju.
@@ -1817,7 +1907,6 @@
     }
     function updateCoupleMap(){
       if(typeof L==='undefined') return;
-      appendTrail('groom',rows.groom); appendTrail('bride',rows.bride);
       if(!coupleMap) return;
       if(rows.groom){
         const ll=[rows.groom.lat,rows.groom.lng];
@@ -1830,8 +1919,7 @@
         else { brideMarker.setLatLng(ll); if(brideMarker.isPopupOpen()) brideMarker.setPopupContent(popupPersonHtml('bride')); }
       }
       separateCoupleIcons();
-      groomTrailLine&&groomTrailLine.setLatLngs(groomTrail);
-      brideTrailLine&&brideTrailLine.setLatLngs(brideTrail);
+      drawRecentTrails();
       const available=[rows.groom,rows.bride].filter(Boolean);
       const groomFresh=isFresh(rows.groom,180), brideFresh=isFresh(rows.bride,180);
       if(groomFresh && brideFresh){
@@ -2137,6 +2225,7 @@
 
     // Prikaz javnih lokacija; slanje GPS-a radi samo mobilna aplikacija.
     fetchLiveLocation(); setInterval(fetchLiveLocation,10000);
+    fetchRecentTrails(); setInterval(fetchRecentTrails,10000);
     setInterval(updateWeddingProgress,1000);
 
 
