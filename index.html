@@ -749,7 +749,7 @@
                 <span class="person-age" id="brideAge">—</span>
               </div>
             </div>
-            <button class="live-map-btn" id="liveMapBtn" type="button">⌖ Otvori lokaciju</button>
+            <button class="live-map-btn" id="liveMapBtn" type="button"><span class="map-live-dot location-button-dot" aria-hidden="true"></span> Otvori lokaciju</button>
           </div>
           <div class="live-box">
             <small>Predviđeno vrijeme dolaska</small>
@@ -878,7 +878,11 @@
 
           <div class="upload-box">
             <strong>Dodaj slike ili videozapise</strong><br>
-            <input type="file" id="guest-files" multiple accept="image/*,video/*" required>
+            <div class="file-picker">
+              <input type="file" id="guest-files" multiple accept="image/*,video/*" required aria-describedby="file-picker-status">
+              <label for="guest-files" class="file-picker-label">Odaberi datoteke</label>
+              <span id="file-picker-status" class="file-picker-status" aria-live="polite">Nijedna datoteka nije odabrana.</span>
+            </div>
           </div>
 
           <button type="submit" class="submit-btn">Pošalji u album gostiju</button>
@@ -969,6 +973,11 @@
 
     const uploadForm = document.getElementById('uploadForm');
     const guestFiles = document.getElementById('guest-files');
+    const filePickerStatus = document.getElementById('file-picker-status');
+    guestFiles.addEventListener('change', () => {
+      const selected = Array.from(guestFiles.files);
+      filePickerStatus.textContent = selected.length === 0 ? 'Nijedna datoteka nije odabrana.' : selected.length === 1 ? selected[0].name : `Odabrano datoteka: ${selected.length}`;
+    });
     const guestName = document.getElementById('guest-name');
     const guestPlace = document.getElementById('guest-place');
     const guestMessage = document.getElementById('guest-message');
@@ -1289,7 +1298,7 @@
     }
 
     function updateMapButton(){
-      liveMapBtn.textContent='⌖ Otvori lokaciju';
+      liveMapBtn.textContent='<span class="map-live-dot location-button-dot" aria-hidden="true"></span> Otvori lokaciju';
       liveMapBtn.disabled=false;
       updateCoupleMap();
     }
