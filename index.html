@@ -409,6 +409,35 @@
     .album-like.liked{color:#cf3045;border-color:#cf3045}
     .album-like.liked svg{fill:#cf3045}
     .album-like:disabled{opacity:.6;cursor:wait}
+
+    /* Sazeti albumi, mreža od tri stupca i pregled preko cijelog zaslona */
+    .album-section-toggle{display:flex;align-items:center;gap:12px;width:100%;padding:0;border:0;background:transparent;text-align:left;color:inherit;font:inherit;cursor:pointer}
+    .album-section-toggle>span:first-child{font-size:clamp(23px,3vw,30px);font-weight:700}
+    .album-count{margin-left:auto;font-size:13px;color:#777;white-space:nowrap}
+    .album-chevron{font-size:26px;line-height:1;transition:transform .2s}
+    .album-section-toggle[aria-expanded="true"] .album-chevron{transform:rotate(180deg)}
+    .album-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .album-gallery[hidden]{display:none!important}
+    .album-item{position:relative;aspect-ratio:1/1;border-radius:9px;cursor:pointer}
+    .album-item img,.album-item video{display:block;width:100%;height:100%;object-fit:cover}
+    .album-item .album-meta{display:none}
+    .album-item:focus-visible{outline:3px solid #4c88d3;outline-offset:2px}
+    .album-video-indicator{position:absolute;top:7px;right:8px;color:white;background:#0009;border-radius:20px;padding:4px 7px;font-size:12px}
+    .album-lightbox[hidden]{display:none!important}
+    .album-lightbox{position:fixed;inset:0;z-index:100000;background:rgba(12,12,14,.96);display:flex;align-items:center;justify-content:center;color:white;font-family:'Libre Baskerville',serif}
+    .album-lightbox-center{width:min(100%,1100px);height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:56px 52px 20px;box-sizing:border-box;min-height:0}
+    .album-lightbox-media{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center}
+    .album-lightbox-media img,.album-lightbox-media video{display:block;max-width:100%;max-height:100%;object-fit:contain}
+    .album-lightbox-info{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0 4px;font-size:13px;line-height:1.7}
+    .album-lightbox-info strong{font-size:15px}
+    .album-lightbox .album-like{margin:0;color:#333;white-space:nowrap}
+    .album-lightbox .album-like.liked{color:#cf3045}
+    .album-lightbox-close,.album-lightbox-nav{position:absolute;z-index:2;background:#ffffff22;border:1px solid #ffffff55;color:white;border-radius:50%;cursor:pointer;font-family:Arial,sans-serif}
+    .album-lightbox-close{right:16px;top:13px;width:42px;height:42px;font-size:28px}
+    .album-lightbox-nav{top:48%;width:42px;height:50px;font-size:35px}
+    .album-lightbox-prev{left:8px}.album-lightbox-next{right:8px}
+    .album-lightbox-nav:disabled{opacity:.2;cursor:default}
+    @media(max-width:600px){.album-gallery{gap:5px}.album-section{padding:15px}.album-section-toggle>span:first-child{font-size:23px}.album-count{font-size:11px}.album-lightbox-center{padding:64px 12px 28px}.album-lightbox-info{align-items:flex-start;gap:8px;font-size:11px}.album-lightbox-nav{top:44%;width:32px;height:43px;font-size:28px}.album-lightbox-prev{left:2px}.album-lightbox-next{right:2px}}
     .owner-panel{
       margin-top:28px;
       padding:20px;
@@ -918,18 +947,25 @@
         </form>
 <div class="guest-albums" id="album-gostiju">
           <div class="album-section">
-            <h3>Crkva</h3>
-            <div class="album-gallery" id="churchGallery"></div>
+            <button class="album-section-toggle" type="button" data-place="Crkva" aria-expanded="false" aria-controls="churchGallery"><span>Crkva</span><span class="album-count" id="churchCount">0 fotografija</span><span class="album-chevron" aria-hidden="true">⌄</span></button>
+            <div class="album-gallery" id="churchGallery" hidden></div>
           </div>
 
           <div class="album-section">
-            <h3>Svadbeni salon</h3>
-            <div class="album-gallery" id="salonGallery"></div>
+            <button class="album-section-toggle" type="button" data-place="Svadbeni salon" aria-expanded="false" aria-controls="salonGallery"><span>Svadbeni salon</span><span class="album-count" id="salonCount">0 fotografija</span><span class="album-chevron" aria-hidden="true">⌄</span></button>
+            <div class="album-gallery" id="salonGallery" hidden></div>
           </div>
         </div>
       </article>
     </section>
   </main>
+
+  <div class="album-lightbox" id="albumLightbox" hidden role="dialog" aria-modal="true" aria-label="Pregled fotografija i videozapisa" tabindex="-1">
+    <button type="button" class="album-lightbox-close" aria-label="Zatvori pregled">×</button>
+    <button type="button" class="album-lightbox-nav album-lightbox-prev" aria-label="Prethodna fotografija">‹</button>
+    <div class="album-lightbox-center"><div class="album-lightbox-media" id="albumLightboxMedia"></div><div class="album-lightbox-info"><div id="albumLightboxDetails"></div><div id="albumLightboxLike"></div></div></div>
+    <button type="button" class="album-lightbox-nav album-lightbox-next" aria-label="Sljedeća fotografija">›</button>
+  </div>
 
   <div class="couple-map-modal" id="coupleMapModal" aria-hidden="true">
     <div class="couple-map-panel" role="dialog" aria-modal="true" aria-label="Karta lokacija">
@@ -1061,38 +1097,108 @@
       finally { button.disabled = false; }
     }
 
+    let albumItems = [];
+    let albumLikes = new Map();
+    let activeAlbumPlace = null;
+    let activeAlbumIndex = 0;
+    const albumLightbox = document.getElementById('albumLightbox');
+    const albumLightboxMedia = document.getElementById('albumLightboxMedia');
+    const albumLightboxDetails = document.getElementById('albumLightboxDetails');
+    const albumLightboxLike = document.getElementById('albumLightboxLike');
+    let previousAlbumFocus = null;
+    function itemsForPlace(place){return albumItems.filter(item=>item.place===place);}
+    function albumCountLabel(n){return n===1?'1 fotografija / video':`${n} fotografija / videa`;}
+    document.querySelectorAll('.album-section-toggle').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const expanded=button.getAttribute('aria-expanded')==='true';
+        button.setAttribute('aria-expanded',String(!expanded));
+        document.getElementById(button.getAttribute('aria-controls')).hidden=expanded;
+      });
+    });
+    function createLikeButton(item,likes){
+      const state=likes.get(item.id)||{count:0,mine:false};
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='album-like'+(state.mine?' liked':'');
+      button.setAttribute('aria-label',state.mine?'Ukloni lajk':'Lajkaj fotografiju');
+      button.setAttribute('aria-pressed',String(state.mine));
+      button.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${state.count}</span>`;
+      button.addEventListener('click',async()=>{await toggleLike(item.id,button);});
+      return button;
+    }
+    function openAlbumItem(place,index){
+      const list=itemsForPlace(place);
+      if(!list.length)return;
+      activeAlbumPlace=place;
+      activeAlbumIndex=Math.max(0,Math.min(index,list.length-1));
+      previousAlbumFocus=document.activeElement;
+      albumLightbox.hidden=false;
+      document.body.style.overflow='hidden';
+      showAlbumItem();
+      albumLightbox.focus();
+    }
+    function showAlbumItem(){
+      if(albumLightbox.hidden)return;
+      const list=itemsForPlace(activeAlbumPlace);
+      if(!list.length){closeAlbumItem();return;}
+      activeAlbumIndex=Math.min(activeAlbumIndex,list.length-1);
+      const item=list[activeAlbumIndex];
+      albumLightboxMedia.replaceChildren();
+      const isVideo=(item.file_type||'').startsWith('video/');
+      const media=document.createElement(isVideo?'video':'img');
+      media.src=item.file_url;
+      if(isVideo){media.controls=true;media.playsInline=true;}
+      else{media.alt=item.message||item.place;}
+      albumLightboxMedia.appendChild(media);
+      albumLightboxDetails.replaceChildren();
+      const name=document.createElement('strong');name.textContent=item.guest_name||'Gost';
+      const date=document.createElement('div');date.textContent=new Date(item.created_at).toLocaleString('hr-HR');
+      albumLightboxDetails.append(name,date);
+      if(item.message){const message=document.createElement('div');message.textContent=item.message;albumLightboxDetails.appendChild(message);}
+      albumLightboxLike.replaceChildren(createLikeButton(item,albumLikes));
+      document.querySelector('.album-lightbox-prev').disabled=activeAlbumIndex===0;
+      document.querySelector('.album-lightbox-next').disabled=activeAlbumIndex===list.length-1;
+    }
+    function closeAlbumItem(){
+      albumLightbox.hidden=true;
+      albumLightboxMedia.replaceChildren();
+      document.body.style.overflow='';
+      if(previousAlbumFocus&&previousAlbumFocus.isConnected)previousAlbumFocus.focus();
+    }
+    function moveAlbumItem(delta){
+      const next=activeAlbumIndex+delta;
+      if(next>=0&&next<itemsForPlace(activeAlbumPlace).length){activeAlbumIndex=next;showAlbumItem();}
+    }
+    document.querySelector('.album-lightbox-close').addEventListener('click',closeAlbumItem);
+    document.querySelector('.album-lightbox-prev').addEventListener('click',()=>moveAlbumItem(-1));
+    document.querySelector('.album-lightbox-next').addEventListener('click',()=>moveAlbumItem(1));
+    albumLightbox.addEventListener('click',event=>{if(event.target===albumLightbox)closeAlbumItem();});
+    document.addEventListener('keydown',event=>{
+      if(albumLightbox.hidden)return;
+      if(event.key==='Escape')closeAlbumItem();
+      if(event.key==='ArrowLeft')moveAlbumItem(-1);
+      if(event.key==='ArrowRight')moveAlbumItem(1);
+    });
+    let swipeX=null;
+    albumLightbox.addEventListener('touchstart',event=>{if(event.touches.length===1)swipeX=event.touches[0].clientX;},{passive:true});
+    albumLightbox.addEventListener('touchend',event=>{if(swipeX===null)return;const diff=event.changedTouches[0].clientX-swipeX;if(Math.abs(diff)>55)moveAlbumItem(diff<0?1:-1);swipeX=null;},{passive:true});
     function renderItem(item,likes){
-      const wrapper = document.createElement('div');
-      wrapper.className = 'album-item';
-      wrapper.dataset.id = item.id;
-      wrapper.dataset.path = item.file_path;
-      let media;
-      if((item.file_type || '').startsWith('video/')){
-        media = document.createElement('video');
-        media.src = item.file_url;
-        media.controls = true;
-        media.playsInline = true;
-      }else{
-        media = document.createElement('img');
-        media.src = item.file_url;
-        media.alt = item.message || item.place;
-        media.loading = 'lazy';
-      }
+      const place=item.place;
+      const wrapper=document.createElement('div');
+      wrapper.className='album-item';
+      wrapper.tabIndex=0;
+      wrapper.setAttribute('role','button');
+      wrapper.setAttribute('aria-label','Otvori: '+(item.guest_name||'Gost'));
+      const isVideo=(item.file_type||'').startsWith('video/');
+      const media=document.createElement(isVideo?'video':'img');
+      media.src=item.file_url;
+      if(isVideo){media.muted=true;media.preload='metadata';}
+      else{media.alt=item.message||item.place;media.loading='lazy';}
       wrapper.appendChild(media);
-      const meta = document.createElement('div');
-      meta.className = 'album-meta';
-      meta.innerHTML = `<strong>${escapeHtml(item.guest_name)}</strong><br>${escapeHtml(item.place)}<br>${escapeHtml(item.message || '')}<br><small>${new Date(item.created_at).toLocaleString('hr-HR')}</small>`;
-      const state = likes.get(item.id) || {count:0,mine:false};
-      const likeButton = document.createElement('button');
-      likeButton.type = 'button';
-      likeButton.className = 'album-like' + (state.mine ? ' liked' : '');
-      likeButton.setAttribute('aria-label',state.mine ? 'Ukloni lajk' : 'Lajkaj fotografiju');
-      likeButton.setAttribute('aria-pressed',String(state.mine));
-      likeButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg><span>${state.count}</span>`;
-      likeButton.addEventListener('click',()=>toggleLike(item.id,likeButton));
-      meta.appendChild(likeButton);
-      wrapper.appendChild(meta);
-      galleryForPlace(item.place).prepend(wrapper);
+      if(isVideo){const badge=document.createElement('span');badge.className='album-video-indicator';badge.textContent='▶ Video';wrapper.appendChild(badge);}
+      wrapper.addEventListener('click',()=>openAlbumItem(place,itemsForPlace(place).findIndex(x=>x.id===item.id)));
+      wrapper.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();wrapper.click();}});
+      galleryForPlace(place).appendChild(wrapper);
     }
 
     async function refreshAlbum(){
@@ -1104,9 +1210,14 @@
         const likes = await loadLikes();
         const focused = document.activeElement;
         if(focused && focused.closest && focused.closest('.album-like')) focused.blur();
+        albumItems=(data||[]).slice().reverse();
+        albumLikes=likes;
         churchGallery.replaceChildren();
         salonGallery.replaceChildren();
-        (data || []).forEach(item=>renderItem(item,likes));
+        albumItems.forEach(item=>renderItem(item,likes));
+        document.getElementById('churchCount').textContent=albumCountLabel(itemsForPlace('Crkva').length);
+        document.getElementById('salonCount').textContent=albumCountLabel(itemsForPlace('Svadbeni salon').length);
+        if(!albumLightbox.hidden)showAlbumItem();
       }finally{albumRefreshInProgress=false;}
     }
     const loadAlbum = refreshAlbum;
