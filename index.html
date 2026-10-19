@@ -894,8 +894,9 @@
           <div class="field">
             <label for="guest-place">Mjesto</label>
             <select id="guest-place" required>
-              <option>Crkva</option>
-              <option>Svadbeni salon</option>
+              <option value="" selected disabled hidden>Odaberi</option>
+              <option value="Crkva">Crkva</option>
+              <option value="Svadbeni salon">Svadbeni salon</option>
             </select>
           </div>
 
@@ -1116,6 +1117,8 @@
       .subscribe();
     setInterval(()=>{if(!document.hidden)refreshAlbum();},5000);
 
+    guestPlace.addEventListener('change', ()=>guestPlace.setCustomValidity(''));
+
     uploadForm.addEventListener('submit', async function(e){
       e.preventDefault();
 
@@ -1124,6 +1127,12 @@
 
       const name = guestName.value.trim();
       const place = guestPlace.value;
+      if(!['Crkva', 'Svadbeni salon'].includes(place)){
+        guestPlace.setCustomValidity('Odaberite Crkva ili Svadbeni salon.');
+        guestPlace.reportValidity();
+        return;
+      }
+      guestPlace.setCustomValidity('');
       const message = guestMessage.value.trim();
 
       for(const file of files){
