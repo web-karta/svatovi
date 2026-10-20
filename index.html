@@ -797,7 +797,7 @@
     @media(max-width:600px){.album-lightbox-center{padding:68px 42px 24px}.album-lightbox-info{flex-wrap:wrap}.album-lightbox-actions{margin-left:auto}.album-download{font-size:11px;padding:8px}}
     @media(prefers-reduced-motion:reduce){.progress-cursor,.album-item{animation:none!important;transition:none!important}}
 </style>
-  <link rel="manifest" href="./manifest.json">
+
 </head>
 <body>
   <nav class="top-nav" aria-label="Navigacija pozivnice">
@@ -898,7 +898,7 @@
           <div class="main-name">Josip Alpeza</div>
         </div>
 
-        <div class="date">29. rujna 2026.</div>
+        <div class="date">29. rujna 2029.</div>
 
         <div class="schedule">
           <div class="icon-stack">
@@ -1572,7 +1572,7 @@
 
 
     /* ===== SVATOVI UŽIVO — MLADOŽENJA + MLADA ===== */
-    const WEDDING_DATE = '2029-09-29';
+    const WEDDING_DATE = '2026-10-20';
     const ROLE_ROW = { groom:1, bride:2 };
     const LIVE_POINTS = [
       { name:'Ledinac — skup kod mladoženje', lat:43.34456, lng:17.48685, planned:'12:00', radius:1800 },
@@ -1771,7 +1771,7 @@
       return fraction===null?legIndex*100/3:Math.min(100,(legIndex+fraction)*100/3);
     }
     const phaseSequence=document.getElementById('phaseSequence');
-    phaseSequence.innerHTML=PHASE_LABELS.map((label,i)=>'<span data-phase="'+i+'">'+label+'</span>').join('');
+    if(phaseSequence) phaseSequence.innerHTML=PHASE_LABELS.map((label,i)=>'<span data-phase="'+i+'">'+label+'</span>').join('');
     function updateWeddingProgress(){
       const started=trackingWindow(),groom=rows.groom;
       const phase=started?displayPhase():routeState.phase;
@@ -2320,11 +2320,7 @@
   </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(console.warn);
-  });
-}
+// Service Worker nije potreban za ovu verziju stranice.
 </script>
 
 </body>
