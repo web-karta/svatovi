@@ -650,8 +650,6 @@
       .live-foot{ display:block; }
       .live-foot span{ display:block; margin-top:5px; }
     }
-
-
     /* ===== MLADENCI / POZIVNICA IZA IKONE ===== */
     .cover.invitation-hidden{ display:none; }
     .cover.invitation-open{ display:grid; }
@@ -837,7 +835,7 @@
       <article class="card live-card">
         <div class="live-head">
           <div>
-            <div class="label">Svatovi uživo · TEST 20. 10. 2026.</div>
+            <div class="label">Svatovi uživo</div>
             <h2 class="live-state" id="livePhase">Čekanje početka praćenja</h2>
           </div>
           <div class="live-pill"><span class="live-dot offline" id="liveDot"></span><span id="liveConnection">Lokacija nije aktivna</span></div>
@@ -873,10 +871,10 @@
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
           <div class="progress-cursor" id="progressCursor" aria-hidden="true"></div>
           <div class="progress-steps" id="progressSteps">
-            <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>14:30<br>SKUP KOD MLADOŽENJE</span></div>
+            <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>12:00<br>SKUP KOD MLADOŽENJE</span></div>
             <div class="progress-step" data-step="1"><div class="progress-marker"></div><span>15:00<br>SKUP KOD MLADENKE</span></div>
-            <div class="progress-step" data-step="2"><div class="progress-marker"></div><span>15:30<br>VJENČANJE</span></div>
-            <div class="progress-step" data-step="3"><div class="progress-marker"></div><span>16:00<br>SVEČANA VEČERA</span></div>
+            <div class="progress-step" data-step="2"><div class="progress-marker"></div><span>16:00<br>VJENČANJE</span></div>
+            <div class="progress-step" data-step="3"><div class="progress-marker"></div><span>19:00<br>SVEČANA VEČERA</span></div>
           </div>
         </div>
 
@@ -900,7 +898,7 @@
           <div class="main-name">Josip Alpeza</div>
         </div>
 
-        <div class="date">29. rujna 2029.</div>
+        <div class="date">29. rujna 2026.</div>
 
         <div class="schedule">
           <div class="icon-stack">
@@ -921,7 +919,7 @@
           <div class="event-time">
             <p>16.00</p>
             <br><br>
-            <p>18.00</p>
+            <p>19.00</p>
           </div>
         </div>
 
@@ -953,7 +951,7 @@
         <div class="card-body">
           <div class="label">Svečana večera</div>
           <h2>Svadbeni salon Otok, Grude</h2>
-          <p>Svečana večera počinje u 18.00 sati.</p>
+          <p>Svečana večera počinje u 19.00 sati.</p>
           <div class="location"><strong>Lokacija:</strong><br>Ulica fra Gabre Grubišića 19,<br>Grude – Gomilice</div>
           <button class="map-link shared-map-open" type="button" data-map-target="salon"><span class="map-live-dot location-button-dot" aria-hidden="true"></span> Otvori lokaciju</button>
         </div>
@@ -1574,16 +1572,15 @@
 
 
     /* ===== SVATOVI UŽIVO — MLADOŽENJA + MLADA ===== */
-    const WEDDING_DATE = '2026-10-20';
-    const TRACKING_START_TIME = '01:00'; // Test: početak prikaza i praćenja
+    const WEDDING_DATE = '2029-09-29';
     const ROLE_ROW = { groom:1, bride:2 };
     const LIVE_POINTS = [
-      { name:'Putovi — skup kod mladoženje', lat:43.3308975, lng:17.4496306, planned:'14:30', radius:1800 },
-      { name:'Testna lokacija — skup kod mladenke', lat:43.34456, lng:17.48685, planned:'15:00', radius:900 },
-      { name:'Crkva sv. Petra, apostola — Cista Provo', lat:43.50375, lng:16.94927, planned:'15:30', radius:650 },
-      { name:'Hotel Otok — Grude', lat:43.37856, lng:17.40781, planned:'16:00', radius:700 }
+      { name:'Ledinac — skup kod mladoženje', lat:43.34456, lng:17.48685, planned:'12:00', radius:1800 },
+      { name:'Cista Provo — skup kod mladenke', lat:43.50700, lng:16.94183, planned:'15:00', radius:900 },
+      { name:'Crkva sv. Petra, apostola — Cista Provo', lat:43.50375, lng:16.94927, planned:'16:00', radius:650 },
+      { name:'Hotel Otok — Grude', lat:43.37856, lng:17.40781, planned:'19:00', radius:700 }
     ];
-    const PHASE_LABELS = ['SKUP KOD MLADOŽENJE','SKUP KOD MLADENKE','VJENČANJE','SVEČANA VEČERA'];
+    const PHASE_LABELS = ['SKUP KOD MLADOŽENJE','POLAZAK PO MLADENKU','SKUP KOD MLADENKE','POLAZAK U CRKVU','VJENČANJE','POLAZAK U SVADBENI SALON','SVEČANA VEČERA'];
 
     const livePhase=document.getElementById('livePhase');
     const livePlace=document.getElementById('livePlace');
@@ -1605,16 +1602,36 @@
 
     let watchId=null, wakeLock=null;
     let rows={groom:null,bride:null};
+    // Posljednja poznata lokacija ostaje vidljiva i nakon prekida interneta.
+    // Cache je odvojen od prethodnih testova.
+    const LAST_KNOWN_KEY='svatoviLastKnown_real_2029_09_29_v1';
+    function validLocationRow(r){
+      return !!r && Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)) &&
+        Math.abs(Number(r.lat))<=90 && Math.abs(Number(r.lng))<=180 &&
+        Number.isFinite(Date.parse(r.updated_at));
+    }
+    try{
+      const saved=JSON.parse(localStorage.getItem(LAST_KNOWN_KEY)||'{}');
+      if(validLocationRow(saved.groom))rows.groom=saved.groom;
+      if(validLocationRow(saved.bride))rows.bride=saved.bride;
+    }catch(e){}
     let ownSamples=[];
     let etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase:null };
-    // Stanje faze vodi se prema GPS-u mladoženje; pohranjuje se po pregledniku.
-    const PHASE_STORAGE='weddingRouteState_TEST_2026_10_20_1430_v2';
-    let routeState={phase:0,seenStart:false,seenBride:false,seenChurch:false,seenHotel:false,
-      startExit:0,brideExit:0,churchExit:0};
-    try { routeState={...routeState,...JSON.parse(localStorage.getItem(PHASE_STORAGE)||'{}')}; } catch(e){}
+    // Faze su vezane uz 29. 9. 2029. i ne preuzimaju stare testove.
+    // Prijelaz zahtijeva dva uzastopna nova, precizna GPS očitanja.
+    const PHASE_STORAGE='weddingRouteState_2029_09_29_7phase_v1';
+    let routeState={phase:0,seenStart:false,anchor:null,arrivalCount:0,departureCount:0,lastLat:null,lastLng:null,lastAt:0};
+    try {const stored=JSON.parse(localStorage.getItem(PHASE_STORAGE)||'{}');if(stored && Number.isInteger(stored.phase) && stored.phase>=0 && stored.phase<=6)routeState={...routeState,...stored};}catch(e){}
     let lastPhaseFix='';
-    let lastAcceptedPhaseFix=null; // GPS provjera protiv naglih skokova
-    function saveRouteState(){localStorage.setItem(PHASE_STORAGE,JSON.stringify(routeState));}
+    function saveRouteState(){try{localStorage.setItem(PHASE_STORAGE,JSON.stringify(routeState));}catch(e){}}
+    function eventDateTime(hour,minute=0,dayOffset=0){
+      const [y,m,d]=WEDDING_DATE.split('-').map(Number);
+      return new Date(y,m-1,d+dayOffset,hour,minute,0,0);
+    }
+    function trackingWindow(){const now=Date.now();return now>=eventDateTime(11).getTime() && now<eventDateTime(6,0,1).getTime();}
+    function weddingStarted(){return trackingWindow();}
+    function gatheringStarted(){return Date.now()>=eventDateTime(12).getTime() && trackingWindow();}
+    function trackingFinished(){return Date.now()>=eventDateTime(6,0,1).getTime();}
 
     function trackingKey(){ return 'weddingTrackingEnabled_'+(activeRole||'none'); }
     function isTrackingWanted(){ return activeRole && localStorage.getItem(trackingKey())==='1'; }
@@ -1634,7 +1651,7 @@
       return 'na putu';
     }
     function ageText(row){
-      if(!row) return 'nije aktivno';
+      if(!row) return 'nema očitanja';
       const s=Math.max(0,Math.round((Date.now()-new Date(row.updated_at).getTime())/1000));
       if(s<60) return 'prije '+s+' s';
       return 'prije '+Math.round(s/60)+' min';
@@ -1642,70 +1659,62 @@
     function isFresh(row,seconds=180){return !!row && Date.now()-new Date(row.updated_at).getTime()<seconds*1000;}
 
     function targetForPhase(phase){
-      if(phase===0) return LIVE_POINTS[0];
-      if(phase===1) return LIVE_POINTS[1];
-      if(phase===2) return LIVE_POINTS[2];
-      return LIVE_POINTS[3];
+      return LIVE_POINTS[phase<=0?0:phase<=2?1:phase<=4?2:3];
     }
-
-    // GPS točnost mora biti zadovoljavajuća; tri uzastopna očitanja
-    // potvrđuju napuštanje lokacije. Različiti pragovi sprečavaju titranje.
+    // 15 m od stvarno zabilježene pozicije skupa (ne od približne točke na karti).
+    // Za dolazak je dopušten radijus 40 m uz dva nova GPS očitanja.
+    const DEPARTURE_METERS=15, ARRIVAL_METERS=40;
     function updatePhaseFromFix(lat,lng,accuracy=999,updatedAt=''){
-      if(!weddingStarted() || accuracy>60 || !Number.isFinite(lat) || !Number.isFinite(lng)) return routeState.phase;
-      if(updatedAt && (!Number.isFinite(new Date(updatedAt).getTime()) || Math.abs(Date.now()-new Date(updatedAt).getTime())>180000))return routeState.phase;
-      const fixTime=updatedAt ? new Date(updatedAt).getTime() : Date.now();
-      if(lastAcceptedPhaseFix){
-        const elapsed=(fixTime-lastAcceptedPhaseFix.time)/1000;
-        if(elapsed<=0)return routeState.phase;
-        const traveled=distanceM(lastAcceptedPhaseFix.lat,lastAcceptedPhaseFix.lng,lat,lng);
-        // 45 m/s (162 km/h) + 100 m GPS tolerancije: odbaci nemoguć skok.
-        if(traveled>elapsed*45+100)return routeState.phase;
-      }
-      const key=String(updatedAt||'')+':'+lat.toFixed(6)+':'+lng.toFixed(6);
-      if(key===lastPhaseFix) return routeState.phase;
+      if(!trackingWindow() || !Number.isFinite(lat) || !Number.isFinite(lng) || accuracy>20)return routeState.phase;
+      const t=Date.parse(updatedAt);
+      if(!Number.isFinite(t) || Math.abs(Date.now()-t)>90000)return routeState.phase;
+      const key=updatedAt+':'+lat.toFixed(7)+':'+lng.toFixed(7);
+      if(key===lastPhaseFix)return routeState.phase;
       lastPhaseFix=key;
-      lastAcceptedPhaseFix={lat,lng,time:fixTime};
+      // Odbaci očito nemoguće skokove, bez izmišljanja novih koordinata.
+      if(routeState.lastAt && t>routeState.lastAt){
+        const dt=(t-routeState.lastAt)/1000;
+        const jump=distanceM(lat,lng,routeState.lastLat,routeState.lastLng);
+        if(dt>0 && jump/dt>45)return routeState.phase;
+      }
+      if(t<=routeState.lastAt)return routeState.phase;
+      routeState.lastLat=lat;routeState.lastLng=lng;routeState.lastAt=t;
+      const phase=routeState.phase;
       const ds=LIVE_POINTS.map(p=>distanceM(lat,lng,p.lat,p.lng));
-      if(ds[0]<=100) routeState.seenStart=true;
-      if(routeState.phase===0 && routeState.seenStart){
-        routeState.startExit=ds[0]>=150?routeState.startExit+1:0;
-        if(routeState.startExit>=3) routeState.phase=1;
-      }
-      if(routeState.phase===1){
-        if(ds[1]<=100) routeState.seenBride=true;
-        if(routeState.seenBride){
-          routeState.brideExit=ds[1]>=150?routeState.brideExit+1:0;
-          if(routeState.brideExit>=3) routeState.phase=2;
+      if(phase===0){
+        // Prije 12:00 ne može se potvrditi skup ni polazak.
+        if(gatheringStarted() && ds[0]<=ARRIVAL_METERS){
+          routeState.arrivalCount++;
+          if(routeState.arrivalCount>=2 && !routeState.seenStart){
+            routeState.seenStart=true;routeState.anchor={lat,lng};routeState.departureCount=0;
+          }
+        }else if(!routeState.seenStart)routeState.arrivalCount=0;
+        if(routeState.seenStart && routeState.anchor){
+          routeState.departureCount=distanceM(lat,lng,routeState.anchor.lat,routeState.anchor.lng)>=DEPARTURE_METERS?routeState.departureCount+1:0;
+          if(routeState.departureCount>=2){routeState.phase=1;routeState.arrivalCount=0;routeState.departureCount=0;}
+        }
+      }else if(phase===1 || phase===3 || phase===5){
+        const destination=phase===1?1:phase===3?2:3;
+        routeState.arrivalCount=ds[destination]<=ARRIVAL_METERS?routeState.arrivalCount+1:0;
+        if(routeState.arrivalCount>=2){
+          routeState.phase=phase+1;routeState.anchor={lat,lng};routeState.departureCount=0;routeState.arrivalCount=0;
+        }
+      }else if(phase===2 || phase===4){
+        // Od skupa kod mladenke ili crkve prema sljedećem odredištu.
+        if(!routeState.anchor && ds[phase===2?1:2]<=ARRIVAL_METERS)routeState.anchor={lat,lng};
+        if(routeState.anchor){
+          routeState.departureCount=distanceM(lat,lng,routeState.anchor.lat,routeState.anchor.lng)>=DEPARTURE_METERS?routeState.departureCount+1:0;
+          if(routeState.departureCount>=2){routeState.phase=phase+1;routeState.arrivalCount=0;routeState.departureCount=0;}
         }
       }
-      if(routeState.phase===2){
-        if(ds[2]<=100) routeState.seenChurch=true;
-        if(routeState.seenChurch){
-          routeState.churchExit=ds[2]>=150?routeState.churchExit+1:0;
-          if(routeState.churchExit>=3) routeState.phase=3;
-        }
-      }
-      if(routeState.phase===3 && ds[3]<=100) routeState.seenHotel=true;
-      saveRouteState();
-      return routeState.phase;
+      saveRouteState();return routeState.phase;
     }
-    function displayPhase(row){
-      if(!weddingStarted()) return 0;
-      if(isFresh(rows.groom,180)){
-        updatePhaseFromFix(Number(rows.groom.lat),Number(rows.groom.lng),Number(rows.groom.accuracy)||999,rows.groom.updated_at);
-      }
+    function displayPhase(){
+      if(!trackingWindow())return routeState.phase;
+      if(isFresh(rows.groom,90))updatePhaseFromFix(Number(rows.groom.lat),Number(rows.groom.lng),Number(rows.groom.accuracy)||999,rows.groom.updated_at);
       return routeState.phase;
     }
 
-    // Napredak se temelji isključivo na mladoženjinoj svježoj GPS lokaciji.
-    // Test počinje 20.10.2026. u 01:00 (lokalno vrijeme uređaja).
-    function weddingStarted(){
-      const now=new Date();
-      const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-      const currentMinutes=now.getHours()*60+now.getMinutes();
-      const [startHour,startMinute]=TRACKING_START_TIME.split(':').map(Number);
-      return today>WEDDING_DATE || (today===WEDDING_DATE && currentMinutes>=startHour*60+startMinute);
-    }
     // Cestovne trase dohvaćaju se iz OSRM-a. Napredak se mjeri projekcijom
     // GPS položaja na najbliži dio rute, a ne zračnom udaljenošću do cilja.
     const roadLegs=[null,null,null];
@@ -1748,61 +1757,60 @@
       finally{roadRequests[index]=false;}
     }
     function progressPercent(row){
-      if(!weddingStarted() || !row)return 0;
-      const phase=displayPhase(row);
+      const phase=displayPhase();
       if(phase===0)return 0;
-      const legIndex=phase-1;
-      const target=LIVE_POINTS[phase];
+      if(phase===2)return 100/3;
+      if(phase===4)return 200/3;
+      if(phase===6)return 100;
+      const legIndex=phase===1?0:phase===3?1:2;
+      const target=LIVE_POINTS[legIndex+1];
       const remaining=distanceM(Number(row.lat),Number(row.lng),target.lat,target.lng);
-      if(remaining<=100)return phase*100/3;
-      if(!roadLegs[legIndex]){
-        loadRoadLeg(legIndex);
-        // Dok se cesta ne učita, ostaje prethodni postignuti napredak.
-        return (phase-1)*100/3;
-      }
+      if(remaining<=ARRIVAL_METERS)return (legIndex+1)*100/3;
+      if(!roadLegs[legIndex]){loadRoadLeg(legIndex);return legIndex*100/3;}
       const fraction=routeFraction(roadLegs[legIndex],Number(row.lat),Number(row.lng));
-      if(fraction===null)return (phase-1)*100/3;
-      return Math.min(100,Math.max(0,(phase-1+fraction)*100/3));
+      return fraction===null?legIndex*100/3:Math.min(100,(legIndex+fraction)*100/3);
     }
+    const phaseSequence=document.getElementById('phaseSequence');
+    phaseSequence.innerHTML=PHASE_LABELS.map((label,i)=>'<span data-phase="'+i+'">'+label+'</span>').join('');
     function updateWeddingProgress(){
-      const groom=rows.groom;
-      const started=weddingStarted();
-      // Nakon 01:00 na testni dan pokazivač ostaje vidljiv čak i bez GPS signala.
-      // Ako je GPS nedostupan, ostaje na posljednjoj poznatoj fazi/lokaciji.
-      const percentage=started ? (groom && isFresh(groom,180) ? progressPercent(groom) : Math.max(0,Math.min(100,(routeState.phase||0)*100/3))) : 0;
+      const started=trackingWindow(),groom=rows.groom;
+      const phase=started?displayPhase():routeState.phase;
+      const percentage=started?(groom && isFresh(groom,90)?progressPercent(groom):([0,0,1,1,2,2,3][phase])*100/3):0;
       progressShell.classList.toggle('before-start',!started);
-      const stableProgress=started ? Math.max(Number(sessionStorage.getItem('svatoviLastProgress_road_TEST_1430_v2_'+WEDDING_DATE)||0),percentage) : 0;
-      if(started)sessionStorage.setItem('svatoviLastProgress_road_TEST_1430_v2_'+WEDDING_DATE,String(stableProgress));
+      const key='svatoviLastProgress_2029_09_29_7phase_v1';
+      const stableProgress=started?Math.max(Number(sessionStorage.getItem(key)||0),percentage):0;
+      if(started)try{sessionStorage.setItem(key,String(stableProgress));}catch(e){}
       progressFill.style.width=stableProgress.toFixed(2)+'%';
-      // Središta četiriju oznaka nalaze se na 12.5%, 37.5%, 62.5% i 87.5%.
       progressCursor.style.left=`calc(12.5% + ${stableProgress.toFixed(2)}% * 0.75)`;
-      const phase=started ? (groom ? displayPhase(groom) : (routeState.phase||0)) : -1;
+      const completed=phase>=6?3:phase>=4?2:phase>=2?1:0;
+      const active=phase>=6?3:phase>=4?2:phase>=2?1:0;
       progressSteps.forEach((el,i)=>{
-        el.classList.toggle('done',started && i<phase);
-        el.classList.toggle('active',started && i===phase);
+        el.classList.toggle('done',started && i<completed);
+        el.classList.toggle('active',started && i===active);
       });
     }
 
     /* Stabilna ETA: ne vjeruje jednom GPS očitanju ni trenutačnoj brzini.
        Procjena se mijenja tek nakon dva uzastopna slična izračuna i najviše 1 min svakih 20 s. */
     function rawEtaMinutes(row){
-      const phase=displayPhase(row);
+      const phase=displayPhase();
       const target=targetForPhase(phase);
       const meters=distanceM(row.lat,row.lng,target.lat,target.lng);
       if(meters<=target.radius) return 0;
-      const baseline=[48,48,34,44][phase];
+      const baseline=[48,48,48,34,34,44,44][phase];
       let speed=baseline;
       if(Number(row.speed)>3){
         const measured=Math.max(18,Math.min(75,Number(row.speed)*3.6));
         speed=0.25*measured+0.75*baseline;
       }
-      const roadFactor=[1.20,1.20,1.12,1.16][phase];
+      const roadFactor=[1.20,1.20,1.20,1.12,1.12,1.16,1.16][phase];
       return Math.max(1,Math.min(120,(meters/1000*roadFactor)/speed*60));
     }
     function stableEta(row){
       // Prije početka svadbenog dana ne računaj GPS ETA za budući događaj.
       if(!weddingStarted()) return {text:LIVE_POINTS[0].planned,delay:''};
-      const phase=displayPhase(row);
+      const phase=displayPhase();
+      if(phase===0 || phase===2 || phase===4 || phase===6)return {text:phase===6?'Svečana večera u tijeku':'Skup / događaj u tijeku',delay:''};
       const target=targetForPhase(phase);
       if(etaState.phase!==phase){ etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase }; }
       if(distanceM(row.lat,row.lng,target.lat,target.lng)<=target.radius) return {text:'Stigli na odredište',delay:''};
@@ -1990,7 +1998,7 @@
         coupleMapStatus.textContent='DOSTUPNA SAMO MLADENKINA LOKACIJA';
         mapLiveDot&&mapLiveDot.classList.remove('off');
       }else{
-        coupleMapStatus.textContent='NIJE UKLJUČENA LOKACIJA';
+        coupleMapStatus.textContent=rows.groom||rows.bride?'POSLJEDNJA POZNATA LOKACIJA · OFFLINE':'LOKACIJA JOŠ NIJE ZABILJEŽENA';
         mapLiveDot&&mapLiveDot.classList.add('off');
       }
       if(activeNavTarget==='groom' || activeNavTarget==='bride'){
@@ -2218,14 +2226,14 @@
       updateMapButton();
       const ref=referenceRow();
       if(!ref){
-        livePhase.textContent='ČEKANJE POČETKA PRAĆENJA'; livePlace.textContent='Nema aktivne lokacije'; liveEta.textContent='—'; liveDelay.textContent=''; liveDelay.className='delay'; updateWeddingProgress(); return;
+        livePhase.textContent=trackingFinished()?'PRAĆENJE ZAVRŠENO':trackingWindow()?'ČEKANJE GPS LOKACIJE':'ČEKANJE POČETKA PRAĆENJA'; livePlace.textContent='Nema aktivne lokacije'; liveEta.textContent='—'; liveDelay.textContent=''; liveDelay.className='delay'; updateWeddingProgress(); return;
       }
-      const phase=weddingStarted()?displayPhase(ref):0;
-      livePhase.textContent=weddingStarted()?(phase===0 && routeState.seenStart?'SKUP KOD MLADOŽENJE U TIJEKU':PHASE_LABELS[phase]):'ČEKANJE POČETKA SVADBE';
+      const phase=displayPhase();
+      livePhase.textContent=trackingFinished()?'PRAĆENJE ZAVRŠENO':!trackingWindow()?'ČEKANJE POČETKA PRAĆENJA':!gatheringStarted()?'ČEKANJE SKUPA KOD MLADOŽENJE':PHASE_LABELS[phase];
       const gFresh=isFresh(rows.groom,180), bFresh=isFresh(rows.bride,180);
       livePlace.textContent=gFresh?'Mladoženja je referentna lokacija':(bFresh?'Mlada je trenutačno referentna lokacija':'Posljednja poznata lokacija');
-      const atStart=phase===0 && routeState.seenStart && weddingStarted();
-      const eta=atStart?{text:'Skup u tijeku',delay:''}:stableEta(ref);
+      const atStart=phase===0 && routeState.seenStart;
+      const eta=!trackingWindow()?{text:'—',delay:''}:(atStart?{text:'Skup u tijeku',delay:''}:stableEta(ref));
       // Razlika od najmanje jedne minute: prekriži planirano i istakni novu procjenu.
       liveEta.className='';
       liveDelay.className='delay';
@@ -2240,13 +2248,13 @@
         liveEta.textContent=eta.text;
         liveDelay.textContent='';
       }
-      etaNote.textContent=atStart?'Prijelaz na skup kod mladenke slijedi nakon potvrđenog udaljavanja mladoženje od početne lokacije.':!weddingStarted()?'Testno praćenje počinje 20. 10. 2026. u 01:00.':(gFresh?'Procjena prema mladoženji. ':bFresh?'Procjena prema mladi. ':'Posljednja poznata lokacija. ')+
+      etaNote.textContent=atStart?'Polazak po mladenku slijedi nakon potvrđenog udaljavanja od skupa.':!weddingStarted()?'Praćenje traje od 11:00 na dan vjenčanja do 06:00 sljedećeg jutra.':(gFresh?'Procjena prema mladoženji. ':bFresh?'Procjena prema mladi. ':'Posljednja poznata lokacija. ')+
         'Vrijeme dolaska može se promijeniti tijekom vožnje.';
       const newest=[rows.groom,rows.bride].filter(Boolean).sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at))[0];
       const ageSec=(Date.now()-new Date(newest.updated_at).getTime())/1000;
       liveUpdated.textContent='Posljednje ažuriranje: '+new Date(newest.updated_at).toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const online=ageSec<90;
-      liveDot.classList.toggle('offline',!online); liveConnection.textContent=online?'Lokacija uživo':'Posljednja poznata lokacija';
+      liveDot.classList.toggle('offline',!online || !trackingWindow()); liveConnection.textContent=trackingFinished()?'Praćenje završeno · zadnja lokacija':online && trackingWindow()?'Lokacija uživo':'Posljednja poznata lokacija · offline';
       updateWeddingProgress();
     }
 
@@ -2268,11 +2276,27 @@
     }
 
 
+    let liveFetchBusy=false;
     async function fetchLiveLocation(){
-      const {data,error}=await supabaseClient.from('wedding_live_location').select('*').in('id',[1,2]);
-      if(error){console.warn(error);liveConnection.textContent='Praćenje nije dostupno';return;}
-      for(const r of (data||[])){if(r.id===1)rows.groom=r; if(r.id===2)rows.bride=r;}
-      renderCouple();
+      if(liveFetchBusy)return;
+      liveFetchBusy=true;
+      try{
+        const {data,error}=await supabaseClient.from('wedding_live_location').select('*').in('id',[1,2]);
+        if(error)throw error;
+        // Ne briši posljednje koordinate ako server privremeno ne vrati redak.
+        for(const r of (data||[])){
+          if(!validLocationRow(r))continue;
+          const role=r.id===1?'groom':r.id===2?'bride':null;
+          if(role && (!rows[role] || Date.parse(r.updated_at)>=Date.parse(rows[role].updated_at)))rows[role]=r;
+        }
+        try{localStorage.setItem(LAST_KNOWN_KEY,JSON.stringify(rows));}catch(e){}
+      }catch(error){
+        console.warn('GPS podaci trenutno nisu dostupni:',error);
+        // Ne uklanjaj oznake zbog gubitka veze.
+      }finally{
+        liveFetchBusy=false;
+        renderCouple();
+      }
     }
 
     /* Pozivnica je skrivena iza četvrte navigacijske ikone. */
@@ -2282,7 +2306,12 @@
     invitationNav.addEventListener('click',openInvitation); invitationClose.addEventListener('click',closeInvitation);
 
     // Prikaz javnih lokacija; slanje GPS-a radi samo mobilna aplikacija.
-    fetchLiveLocation(); setInterval(fetchLiveLocation,10000);
+    renderCouple(); // Prikaži spremljene koordinate odmah, i bez mreže.
+    fetchLiveLocation(); setInterval(fetchLiveLocation,5000);
+    // Status i starost očitanja ažuriraju se čak i dok se mobiteli ne pomiču.
+    setInterval(()=>{renderCouple();},5000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)fetchLiveLocation();});
+    window.addEventListener('online',fetchLiveLocation);
     fetchRecentTrails(); setInterval(fetchRecentTrails,10000);
     setInterval(updateWeddingProgress,1000);
 
