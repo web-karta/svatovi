@@ -1578,7 +1578,7 @@
     const TRACKING_START_TIME = '01:00'; // Test: početak prikaza i praćenja
     const ROLE_ROW = { groom:1, bride:2 };
     const LIVE_POINTS = [
-      { name:'Ledinac — skup kod mladoženje', lat:43.3308975, lng:17.4496306, planned:'14:30', radius:1800 },
+      { name:'Putovi — skup kod mladoženje', lat:43.3308975, lng:17.4496306, planned:'14:30', radius:1800 },
       { name:'Testna lokacija — skup kod mladenke', lat:43.34456, lng:17.48685, planned:'15:00', radius:900 },
       { name:'Crkva sv. Petra, apostola — Cista Provo', lat:43.50375, lng:16.94927, planned:'15:30', radius:650 },
       { name:'Hotel Otok — Grude', lat:43.37856, lng:17.40781, planned:'16:00', radius:700 }
@@ -1608,11 +1608,12 @@
     let ownSamples=[];
     let etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase:null };
     // Stanje faze vodi se prema GPS-u mladoženje; pohranjuje se po pregledniku.
-    const PHASE_STORAGE='weddingRouteState_TEST_2026_10_20_v1';
+    const PHASE_STORAGE='weddingRouteState_TEST_2026_10_20_1430_v2';
     let routeState={phase:0,seenStart:false,seenBride:false,seenChurch:false,seenHotel:false,
       startExit:0,brideExit:0,churchExit:0};
     try { routeState={...routeState,...JSON.parse(localStorage.getItem(PHASE_STORAGE)||'{}')}; } catch(e){}
     let lastPhaseFix='';
+    let lastAcceptedPhaseFix=null; // GPS provjera protiv naglih skokova
     function saveRouteState(){localStorage.setItem(PHASE_STORAGE,JSON.stringify(routeState));}
 
     function trackingKey(){ return 'weddingTrackingEnabled_'+(activeRole||'none'); }
@@ -1651,10 +1652,19 @@
     // potvrđuju napuštanje lokacije. Različiti pragovi sprečavaju titranje.
     function updatePhaseFromFix(lat,lng,accuracy=999,updatedAt=''){
       if(!weddingStarted() || accuracy>60 || !Number.isFinite(lat) || !Number.isFinite(lng)) return routeState.phase;
-      if(updatedAt && Date.now()-new Date(updatedAt).getTime()>180000)return routeState.phase;
+      if(updatedAt && (!Number.isFinite(new Date(updatedAt).getTime()) || Math.abs(Date.now()-new Date(updatedAt).getTime())>180000))return routeState.phase;
+      const fixTime=updatedAt ? new Date(updatedAt).getTime() : Date.now();
+      if(lastAcceptedPhaseFix){
+        const elapsed=(fixTime-lastAcceptedPhaseFix.time)/1000;
+        if(elapsed<=0)return routeState.phase;
+        const traveled=distanceM(lastAcceptedPhaseFix.lat,lastAcceptedPhaseFix.lng,lat,lng);
+        // 45 m/s (162 km/h) + 100 m GPS tolerancije: odbaci nemoguć skok.
+        if(traveled>elapsed*45+100)return routeState.phase;
+      }
       const key=String(updatedAt||'')+':'+lat.toFixed(6)+':'+lng.toFixed(6);
       if(key===lastPhaseFix) return routeState.phase;
       lastPhaseFix=key;
+      lastAcceptedPhaseFix={lat,lng,time:fixTime};
       const ds=LIVE_POINTS.map(p=>distanceM(lat,lng,p.lat,p.lng));
       if(ds[0]<=100) routeState.seenStart=true;
       if(routeState.phase===0 && routeState.seenStart){
@@ -1761,8 +1771,8 @@
       // Ako je GPS nedostupan, ostaje na posljednjoj poznatoj fazi/lokaciji.
       const percentage=started ? (groom && isFresh(groom,180) ? progressPercent(groom) : Math.max(0,Math.min(100,(routeState.phase||0)*100/3))) : 0;
       progressShell.classList.toggle('before-start',!started);
-      const stableProgress=started ? Math.max(Number(sessionStorage.getItem('svatoviLastProgress_road_TEST_v1_'+WEDDING_DATE)||0),percentage) : 0;
-      if(started)sessionStorage.setItem('svatoviLastProgress_road_TEST_v1_'+WEDDING_DATE,String(stableProgress));
+      const stableProgress=started ? Math.max(Number(sessionStorage.getItem('svatoviLastProgress_road_TEST_1430_v2_'+WEDDING_DATE)||0),percentage) : 0;
+      if(started)sessionStorage.setItem('svatoviLastProgress_road_TEST_1430_v2_'+WEDDING_DATE,String(stableProgress));
       progressFill.style.width=stableProgress.toFixed(2)+'%';
       // Središta četiriju oznaka nalaze se na 12.5%, 37.5%, 62.5% i 87.5%.
       progressCursor.style.left=`calc(12.5% + ${stableProgress.toFixed(2)}% * 0.75)`;
