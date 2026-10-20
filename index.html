@@ -629,7 +629,9 @@
     .progress-step{ text-align:center; min-width:0; }
     .progress-marker{ width:22px; height:22px; margin:0 auto 10px; border-radius:50%; border:2px solid #bdb4a8; background:#fff; transition:.25s ease; }
     .progress-step.done .progress-marker{ background:#111; border-color:#111; }
-    .progress-step.active .progress-marker{ background:#4979c7; border-color:#4979c7; box-shadow:0 0 0 5px rgba(73,121,199,.16); }
+    .progress-step.active .progress-marker{background:#111;border-color:#111;animation:currentPhasePulse 1.35s ease-in-out infinite;}
+    @keyframes currentPhasePulse{0%,100%{box-shadow:0 0 0 3px rgba(0,0,0,.2);opacity:1}50%{box-shadow:0 0 0 10px rgba(0,0,0,.04);opacity:.48}}
+    @media(prefers-reduced-motion:reduce){.progress-step.active .progress-marker{animation:none;box-shadow:0 0 0 4px rgba(0,0,0,.15)}}
     .progress-step span{ display:block; font-size:10px; line-height:1.35; text-transform:uppercase; letter-spacing:.04em; }
     .live-foot{ margin-top:18px; display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; }
     .tracking-controls{ margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:none; }
@@ -650,6 +652,7 @@
       .live-foot{ display:block; }
       .live-foot span{ display:block; margin-top:5px; }
     }
+    /* Test: sivi pokazivač označava raspored, plavi stvarni GPS napredak. */
     /* ===== MLADENCI / POZIVNICA IZA IKONE ===== */
     .cover.invitation-hidden{ display:none; }
     .cover.invitation-open{ display:grid; }
@@ -869,7 +872,6 @@
 
         <div class="progress-shell" aria-label="Napredak svatova">
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-          <div class="progress-cursor" id="progressCursor" aria-hidden="true"></div>
           <div class="progress-steps" id="progressSteps">
             <div class="progress-step" data-step="0"><div class="progress-marker"></div><span>12:00<br>SKUP KOD MLADOŽENJE</span></div>
             <div class="progress-step" data-step="1"><div class="progress-marker"></div><span>15:00<br>SKUP KOD MLADENKE</span></div>
@@ -898,7 +900,7 @@
           <div class="main-name">Josip Alpeza</div>
         </div>
 
-        <div class="date">29. rujna 2029.</div>
+        <div class="date">20. listopada 2026. (TEST)</div>
 
         <div class="schedule">
           <div class="icon-stack">
@@ -1572,7 +1574,7 @@
 
 
     /* ===== SVATOVI UŽIVO — MLADOŽENJA + MLADA ===== */
-    const WEDDING_DATE = '2026-10-20';
+    const WEDDING_DATE = '2026-10-20'; // TEST: vratiti na 2029-09-29 nakon provjere
     const ROLE_ROW = { groom:1, bride:2 };
     const LIVE_POINTS = [
       { name:'Ledinac — skup kod mladoženje', lat:43.34456, lng:17.48685, planned:'12:00', radius:1800 },
@@ -1604,7 +1606,7 @@
     let rows={groom:null,bride:null};
     // Posljednja poznata lokacija ostaje vidljiva i nakon prekida interneta.
     // Cache je odvojen od prethodnih testova.
-    const LAST_KNOWN_KEY='svatoviLastKnown_real_2029_09_29_v1';
+    const LAST_KNOWN_KEY='svatoviLastKnown_test_2026_10_20_v1';
     function validLocationRow(r){
       return !!r && Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)) &&
         Math.abs(Number(r.lat))<=90 && Math.abs(Number(r.lng))<=180 &&
@@ -1619,7 +1621,7 @@
     let etaState={ value:null, lastChange:0, candidate:null, candidateCount:0, phase:null };
     // Faze su vezane uz 29. 9. 2029. i ne preuzimaju stare testove.
     // Prijelaz zahtijeva dva uzastopna nova, precizna GPS očitanja.
-    const PHASE_STORAGE='weddingRouteState_2029_09_29_7phase_v1';
+    const PHASE_STORAGE='weddingRouteState_test_2026_10_20_7phase_v1';
     let routeState={phase:0,seenStart:false,anchor:null,arrivalCount:0,departureCount:0,lastLat:null,lastLng:null,lastAt:0};
     try {const stored=JSON.parse(localStorage.getItem(PHASE_STORAGE)||'{}');if(stored && Number.isInteger(stored.phase) && stored.phase>=0 && stored.phase<=6)routeState={...routeState,...stored};}catch(e){}
     let lastPhaseFix='';
@@ -1772,21 +1774,26 @@
     }
     const phaseSequence=document.getElementById('phaseSequence');
     if(phaseSequence) phaseSequence.innerHTML=PHASE_LABELS.map((label,i)=>'<span data-phase="'+i+'">'+label+'</span>').join('');
+    function scheduledProgress(now=Date.now()){
+      const times=[[12,0],[15,0],[16,0],[19,0]].map(([h,m])=>eventDateTime(h,m).getTime());
+      if(now<=times[0])return 0;
+      if(now>=times[3])return 100;
+      for(let i=0;i<3;i++)if(now<times[i+1])return (i+(now-times[i])/(times[i+1]-times[i]))*100/3;
+      return 100;
+    }
     function updateWeddingProgress(){
-      const started=trackingWindow(),groom=rows.groom;
-      const phase=started?displayPhase():routeState.phase;
-      const percentage=started?(groom && isFresh(groom,90)?progressPercent(groom):([0,0,1,1,2,2,3][phase])*100/3):0;
-      progressShell.classList.toggle('before-start',!started);
-      const key='svatoviLastProgress_2029_09_29_7phase_v1';
-      const stableProgress=started?Math.max(Number(sessionStorage.getItem(key)||0),percentage):0;
-      if(started)try{sessionStorage.setItem(key,String(stableProgress));}catch(e){}
-      progressFill.style.width=stableProgress.toFixed(2)+'%';
-      progressCursor.style.left=`calc(12.5% + ${stableProgress.toFixed(2)}% * 0.75)`;
-      const completed=phase>=6?3:phase>=4?2:phase>=2?1:0;
-      const active=phase>=6?3:phase>=4?2:phase>=2?1:0;
+      // TEST: traka prikazuje trenutnu fazu prema rasporedu, ne prema starom GPS zapisu.
+      // Ispunjena linija doseže oznaku tekuće faze; prošli krugovi su crni.
+      const now=Date.now();
+      const start=eventDateTime(12).getTime();
+      const milestones=[12,15,16,19].map(h=>eventDateTime(h).getTime());
+      const active=now<start?-1:now>=milestones[3]?3:now>=milestones[2]?2:now>=milestones[1]?1:0;
+      const pct=active<0?0:active*100/3;
+      progressShell.classList.toggle('before-start',active<0);
+      progressFill.style.width=pct.toFixed(2)+'%';
       progressSteps.forEach((el,i)=>{
-        el.classList.toggle('done',started && i<completed);
-        el.classList.toggle('active',started && i===active);
+        el.classList.toggle('done',active>=0 && i<active);
+        el.classList.toggle('active',i===active);
       });
     }
 
